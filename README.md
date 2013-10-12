@@ -23,7 +23,7 @@ do
         ipset add blacklist $ip
 done
 ```
-Make sure to run this snippet in your firewall script and after updating the blacklist. You might copy it to the end of update-blacklist.sh.
+Make sure to run this snippet in your firewall script and after updating the blacklist. For the latter, you might as well copy it to the end of update-blacklist.sh.
 
 # Cron job
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
@@ -43,7 +43,7 @@ Chain INPUT (policy DROP 3064 packets, 177K bytes)
 ```
 
 ## Modify the blacklists you want to use
-Edit the BLACKLIST array to add or remove your own blacklists.
+Edit the BLACKLIST array to add or remove blacklists, or use it to add your own blacklists.
 ```
 BLACKLISTS=(
 "http://www.mysite.me/files/mycustomblacklist.txt" # Your personal blacklist
