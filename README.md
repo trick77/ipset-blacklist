@@ -16,14 +16,9 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 # iptables filter rule
 ```
 ipset create blacklist hash:net
-ipset flush blacklist
 iptables -I INPUT -m set --match-set blacklist src -j DROP
-egrep -v "^#|^$" /etc/ip-blacklist.conf | while IFS= read -r ip
-do
-        ipset add blacklist $ip
-done
 ```
-Make sure to run this snippet in your firewall script and after updating the blacklist. For the latter, you might as well copy it to the end of update-blacklist.sh.
+Make sure to run this snippet in your firewall script. If you don't, the ipset blacklist and the iptables rule to ban the blacklisted ip addresses will be missing!
 
 # Cron job
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
