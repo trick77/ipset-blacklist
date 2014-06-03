@@ -13,6 +13,7 @@ BLACKLISTS=(
 "http://cinsscore.com/list/ci-badguys.txt" # C.I. Army Malicious IP List
 "http://www.openbl.org/lists/base.txt"  # OpenBL.org 30 day List
 "http://www.autoshun.org/files/shunlist.csv" # Autoshun Shun List
+"http://lists.blocklist.de/lists/all.txt" # blocklist.de attackers
 )
 for i in "${BLACKLISTS[@]}"
 do
