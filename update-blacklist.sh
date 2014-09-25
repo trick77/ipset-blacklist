@@ -1,5 +1,4 @@
 #!/bin/bash
-IP_TMP=/tmp/ip.tmp
 IP_BLACKLIST=/etc/ip-blacklist.conf
 IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
 IP_BLACKLIST_CUSTOM=/etc/ip-blacklist-custom.conf # optional
