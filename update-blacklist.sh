@@ -14,7 +14,7 @@ BLACKLISTS=(
 
 for i in "${BLACKLISTS[@]}"
 do
-    wget -O - "$i" | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" >> $IP_BLACKLIST_TMP
+    wget -O - "$i" | sed -r 's/,/\n/g' | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" >> $IP_BLACKLIST_TMP
 done
 
 sort -u $IP_BLACKLIST_TMP > $IP_BLACKLIST
