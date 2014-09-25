@@ -18,7 +18,7 @@ BLACKLISTS=(
 for i in "${BLACKLISTS[@]}"
 do
     curl "$i" > $IP_TMP
-    grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
+    grep -o '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}' $IP_TMP >> $IP_BLACKLIST_TMP
 done
 sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
