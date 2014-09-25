@@ -1,7 +1,6 @@
 #!/bin/bash
 IP_BLACKLIST=/etc/ip-blacklist.conf
 IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
-IP_BLACKLIST_CUSTOM=/etc/ip-blacklist-custom.conf # optional
 BLACKLISTS=(
 "http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
 "http://check.torproject.org/cgi-bin/TorBulkExitList.py?ip=1.1.1.1"  # TOR Exit Nodes
@@ -17,10 +16,10 @@ BLACKLISTS=(
 
 for i in "${BLACKLISTS[@]}"
 do
-    wget -O - "$i" | grep -o '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}' >> $IP_BLACKLIST_TMP
+    wget -O - "$i" | grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" >> $IP_BLACKLIST_TMP
 done
 
-sort -un $IP_BLACKLIST_TMP > $IP_BLACKLIST
+sort -u $IP_BLACKLIST_TMP > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
 wc -l $IP_BLACKLIST
 
