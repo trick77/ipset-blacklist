@@ -6,7 +6,6 @@ BLACKLISTS=(
 "http://check.torproject.org/exit-addresses"  # TOR Exit Nodes
 "http://www.maxmind.com/en/anonymous_proxies" # MaxMind GeoIP Anonymous Proxies
 "http://danger.rulez.sk/projects/bruteforceblocker/blist.php" # BruteForceBlocker IP List
-"http://rules.emergingthreats.net/blockrules/rbn-ips.txt" # Emerging Threats - Russian Business Networks List
 "http://www.spamhaus.org/drop/drop.lasso" # Spamhaus Don't Route Or Peer List (DROP)
 "http://cinsscore.com/list/ci-badguys.txt" # C.I. Army Malicious IP List
 "http://www.openbl.org/lists/base.txt"  # OpenBL.org 30 day List
