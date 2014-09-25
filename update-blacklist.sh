@@ -15,12 +15,13 @@ BLACKLISTS=(
 "http://www.autoshun.org/files/shunlist.csv" # Autoshun Shun List
 "http://lists.blocklist.de/lists/all.txt" # blocklist.de attackers
 )
+
 for i in "${BLACKLISTS[@]}"
 do
-    curl "$i" > $IP_TMP
-    grep -o '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}' $IP_TMP >> $IP_BLACKLIST_TMP
+    wget -O - "$i" | grep -o '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}' >> $IP_BLACKLIST_TMP
 done
-sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
+
+sort -un $IP_BLACKLIST_TMP > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
 wc -l $IP_BLACKLIST
 
