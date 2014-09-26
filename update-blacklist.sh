@@ -24,15 +24,18 @@ sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
 wc -l $IP_BLACKLIST
 
-ipset flush blacklist
+ipset create blacklist_tmp hash:net
 egrep -v "^#|^$" $IP_BLACKLIST | while IFS= read -r ip
 do
-        ipset add blacklist $ip
+        ipset add blacklist_tmp $ip
 done
 
 if [ -f $IP_BLACKLIST_CUSTOM ]; then
         egrep -v "^#|^$" $IP_BLACKLIST_CUSTOM | while IFS= read -r ip
         do
-                ipset add blacklist $ip
+                ipset add blacklist_tmp $ip
         done
 fi
+
+ipset swap blacklist blacklist_tmp
+ipset destroy blacklist_tmp
