@@ -1,7 +1,7 @@
 ipset-blacklist
 ===============
 
-A tiny Bash shell script which uses ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. However, the limit of an ipset list is 2^16 entries.
+A tiny shell script which uses ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. However, the limit of an ipset list is 2^16 entries.
 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
@@ -23,8 +23,7 @@ Make sure to run this snippet in your firewall script. If you don't, the ipset b
 # Cron job
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
 ```
-MAILTO=root
-33 23 * * *      root /usr/local/bin/update-blacklist.sh
+33 23 * * *      /usr/local/bin/update-blacklist.sh
 ```
 
 ## Check for dropped packets
