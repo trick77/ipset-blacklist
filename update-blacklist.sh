@@ -43,7 +43,7 @@ parse_list(){
 }
 
 # rename temp file variable name
-$NUM_IPS="$TEMP_FILE_NAME"
+NUM_IPS=$TEMP_FILE_NAME
 
 # download the blacklists
 download_lists $BLACKLISTS |\
