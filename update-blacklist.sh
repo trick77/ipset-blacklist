@@ -1,7 +1,10 @@
 #!/bin/sh
+# script to create blacklists with ipset for suspicious IPv4 addresses (eg infected hosts)
 
-IP_BLACKLIST=/etc/ip-blacklist.conf
-TEMP_FILE_NAME=/tmp/blacklist_temp
+IP_BLACKLIST=/etc/blacklist.ip.conf
+NET_BLACKLIST=/etc/blacklist.net.conf
+
+TEMP_DIR=/tmp/blacklist_temp
 WGET_LOG=/tmp/update_blacklist.log
 BLACKLISTS="
     http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1
@@ -17,6 +20,10 @@ BLACKLISTS="
     http://malc0de.com/bl/IP_Blacklist.ttx
     http://www.dshield.org/ipsascii.html?limit=10000
     "
+IP_REGEX="([0-9]{1,3}\.){3}[0-9]{1,3}"
+RANGE_REGEX="$IP_REGEX ?- ?$IP_REGEX"
+CIDR_REGEX="$IP_REGEX\\[0-9]{1,2}"
+NET_REGEX="($RANGE_REGEX)|($CIDR_REGEX)"
 
 # download multiple URLs and output to stdout (log errors to logfile)
 download_lists(){
@@ -30,47 +37,63 @@ download_lists(){
     done
 }
 
-# extract IP addresses and remove duplicates
-parse_list(){
-    # make sure each IP address is on a seperate line
+# make sure each IP/net is on a separate line and drop unneeded lines
+process_raw_list(){
+    # make sure each IP/net is on a seperate line
     sed -r 's/,/\n/g' |\
     
-    # extract the IP addresses
-    grep -oE "([0-9]{1,3}\.){3}[0-9]{1,3}" |\
-    
-    # remove duplicates
-    sort -u
+    # drop the lines without IP addresses
+    #grep -E $IP_REGEX
 }
 
-# rename temp file variable name
-NUM_IPS=$TEMP_FILE_NAME
+# take a list of IPs or nets on stdin (1 per line) and create & apply an ipset
+# arg 1: ipset type
+# arg 2: ipset name
+create_ipset(){
+    # remove duplicate IPs/nets, save to the temp file, and count them
+    $NUM_ELEMS=`sort -u | tee $TEMP_DIR/temp_list | wc -l`
+    
+    # create the temporary ipset
+    ipset create $2_tmp $1 maxelem $NUM_ELEMS
+    
+    # fill the ipset
+    cat $TEMP_DIR/temp_list | while IFS= read -r elem
+    do
+        echo "adding $elem to $2"
+        ipset add $2_tmp $elem
+    done
+    
+    # try to swap the temp ipset with the final ipset
+    if (ipset swap $2_tmp $2)
+    then
+        # destroy the old ipset
+        ipset destroy $2_tmp
+        
+    # if swapping failed, try to rename it
+    else
+        if ! (ipset rename $2_tmp $2)
+        then
+            ipset destroy $2_tmp
+            return -1
+        fi
+    fi
+}
 
-# download the blacklists
-download_lists $BLACKLISTS |\
+# make the temp dir
+mkdir -f $TEMP_DIR
 
-# parse the blacklists
-parse_list |\
+# download the raw list of suspicious hosts & nets
+download_lists $BLACKLISTS | process_raw_list > $TEMP_DIR/raw
 
-# limit the number of IPs to 0xffffffff (ipset hardcoded maximum) (NOTE: this is also the number of possible IPv4 addresses)
-#head -n 4294967295 |\
 
-# save blacklist to disk so it can be restored at boot
-tee $IP_BLACKLIST |\
+# create blacklist for IP nets
+grep -oE $NET_REGEX $TEMP_DIR/raw | create_ipset hash:net blacklist_net
 
-# count number of IPs
-wc -l > $NUM_IPS
 
-# create the temporary ipset
-ipset create blacklist_tmp hash:net maxelem `cat $NUM_IPS`
+# create blacklist for individual IP addrs
+grep -vE $NET_REGEX $TEMP_DIR/raw |\
+grep -oE $IP_REGEX | create_ipset hash:ip blacklist_ip
 
-rm $NUM_IPS
 
-# save each IP in the temporary ipset
-cat $IP_BLACKLIST | while IFS= read -r ip
-do 
-    ipset add blacklist_tmp $ip
-done
-
-# activate the new ipset and destroy the old one
-ipset swap blacklist blacklist_tmp
-ipset destroy blacklist_tmp
+# delete temp dir
+rm -rf $TEMP_DIR
