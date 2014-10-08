@@ -66,7 +66,7 @@ ipset create blacklist_tmp hash:net maxelem `cat $NUM_IPS`
 rm $NUM_IPS
 
 # save each IP in the temporary ipset
-< $IP_BLACKLIST while IFS= read -r ip
+cat $IP_BLACKLIST | while IFS= read -r ip
 do 
     ipset add blacklist_tmp $ip
 done
