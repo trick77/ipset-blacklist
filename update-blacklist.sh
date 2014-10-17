@@ -84,7 +84,7 @@ create_ipset(){
 mkdir -p $TEMP_DIR
 
 # download the raw list of suspicious hosts & nets
-#download_lists $BLACKLISTS | process_raw_list > $TEMP_DIR/raw
+download_lists $BLACKLISTS | process_raw_list > $TEMP_DIR/raw
 
 # create blacklist for IP nets
 (grep -oE "$CIDR_REGEX" $TEMP_DIR/raw | lua uniq_cidr.lua &
@@ -102,4 +102,4 @@ create_ipset hash:ip blacklist_ip
 
 
 # delete temp dir
-#rm -rf $TEMP_DIR
+rm -rf $TEMP_DIR
