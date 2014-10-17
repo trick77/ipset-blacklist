@@ -87,7 +87,7 @@ mkdir -p $TEMP_DIR
 download_lists $BLACKLISTS | process_raw_list > $TEMP_DIR/raw
 
 # create blacklist for IP nets
-(grep -oE "$CIDR_REGEX" $TEMP_DIR/raw | lua uniq_cidr.lua &
+(grep -oE "$CIDR_REGEX" $TEMP_DIR/raw | uniq_cidr.lua &
 grep -oE "$RANGE_REGEX" $TEMP_DIR/raw & wait) |\
 tee $NET_BLACKLIST |\
 create_ipset hash:net blacklist_net
