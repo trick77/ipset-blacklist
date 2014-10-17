@@ -8,11 +8,12 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 Note: Updating the blacklists takes a long time (8m 20s on a TPLink TL-WDR3600), and running at a low priority (with 'nice') is recommended. The script uses 'ipset swap' to ensure the blacklist is never empty.
 
 ## Quick start for OpenWRT
-1. Copy scripts to /usr/local/bin and chmod +x
-2. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ip-blacklist.conf
-3. opkg update && opkg install ipset
-4. Create a firewall rule to DROP packets from blacklisted hosts
-5. Create a cron job to run update-blacklist.sh
+1. Copy update-blacklist.sh, load-blacklist.sh, and uniq_cidr.lua to /usr/local/bin
+2. Copy bindechex.lua to /usr/share/lua
+3. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ip-blacklist.conf
+4. opkg update && opkg install ipset
+5. Create a firewall rule to DROP packets from blacklisted hosts
+6. Create a cron job to run update-blacklist.sh
 
 # iptables filter rule
 ```
