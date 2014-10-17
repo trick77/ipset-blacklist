@@ -5,6 +5,8 @@ A set of shell scripts which use ipset and iptables to ban a large number of IP 
 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
+Note: Updating the blacklists takes a long time (8m 20s on a TPLink TL-WDR3600), and running at a low priority (with 'nice') is recommended. The script uses 'ipset swap' to ensure the blacklist is never empty.
+
 ## Quick start for OpenWRT
 1. Copy scripts to /usr/local/bin and chmod +x
 2. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ip-blacklist.conf
@@ -24,7 +26,7 @@ Make sure to run this snippet in your firewall script. If you don't, the ipset b
 # Cron job
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
 ```
-33 23 * * *      /usr/local/bin/update-blacklist.sh
+33 23 * * *      /bin/nice /usr/local/bin/update-blacklist.sh > /tmp/update-blacklist.log 2>&1
 ```
 
 ## Check for dropped packets

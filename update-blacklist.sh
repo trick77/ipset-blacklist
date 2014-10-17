@@ -95,8 +95,8 @@ create_ipset hash:net blacklist_net
 
 # create blacklist for individual IP addrs
 grep -vE "$NET_REGEX" $TEMP_DIR/raw |\
-grep -oE "$IP_REGEX" |\ 
-sort -u |\ 
+grep -oE "$IP_REGEX" |\
+sort -u |\
 tee $IP_BLACKLIST |\
 create_ipset hash:ip blacklist_ip
 
