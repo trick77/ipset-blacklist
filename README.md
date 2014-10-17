@@ -1,22 +1,23 @@
 ipset-blacklist
 ===============
 
-A tiny shell script which uses ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. However, the limit of an ipset list is 2^16 entries.
+A set of shell scripts which use ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. However, the limit of an ipset list is 2^16 entries.
 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
-## Quick start for Debian/Ubuntu based installations
-1. Copy update-blacklist.sh into /usr/local/bin
-2. chmod +x /usr/local/bin/update-blacklist.sh
+## Quick start for OpenWRT
+1. Copy scripts to /usr/local/bin and chmod +x
 2. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ip-blacklist.conf
-3. apt-get install ipset
-4. Create the ipset blacklist and insert it into your iptables input filter (see below). After proper testing, make sure to persist it in your firewall script or similar or the rules will be lost after the next reboot.
-5. Auto-update the blacklist using a cron job
+3. opkg update && opkg install ipset
+4. Create a firewall rule to DROP packets from blacklisted hosts
+5. Create a cron job to run update-blacklist.sh
 
 # iptables filter rule
 ```
-ipset create blacklist hash:net
-iptables -I INPUT -m set --match-set blacklist src -j DROP
+ipset create blacklist_net hash:net
+ipset create blacklist_ip hash:ip
+iptables -I INPUT -m set --match-set blacklist_net src -j DROP
+iptables -I INPUT -m set --match-set blacklist_ip src -j DROP
 ```
 Make sure to run this snippet in your firewall script. If you don't, the ipset blacklist and the iptables rule to ban the blacklisted ip addresses will be missing!
 
@@ -34,14 +35,4 @@ drfalken@wopr:~# iptables -L -vn
 Chain INPUT (policy DROP 3064 packets, 177K bytes)
  pkts bytes target     prot opt in     out     source               destination
    43  2498 DROP       all  --  *      *       0.0.0.0/0            0.0.0.0/0            match-set blacklist src
-```
-
-## Modify the blacklists you want to use
-Edit the BLACKLIST array to add or remove blacklists, or use it to add your own blacklists.
-```
-BLACKLISTS=(
-"http://www.mysite.me/files/mycustomblacklist.txt" # Your personal blacklist
-"http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
-# I don't want this: "http://www.openbl.org/lists/base.txt"  # OpenBL.org 30 day List
-)
 ```
