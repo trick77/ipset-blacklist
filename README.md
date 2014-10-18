@@ -5,7 +5,7 @@ A set of shell scripts which use ipset and iptables to ban a large number of IP 
 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
-Note: Updating the blacklists takes a long time (8m 20s on a TPLink TL-WDR3600), and running at a low priority (with 'nice') is recommended. The script uses 'ipset swap' to ensure the blacklist is never empty.
+Note: Updating the blacklists takes a long time (8m 20s on a TPLink TL-WDR3600), and running at a low priority (with 'nice') is recommended to avoid impacting routing & firewall performance.
 
 ## Quick start for OpenWRT
 1. Copy update-blacklist.sh, load-blacklist.sh, and uniq_cidr.lua to /usr/local/bin
