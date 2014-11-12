@@ -1,18 +1,13 @@
 ipset-blacklist
 ===============
 
-A set of shell scripts which use ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. However, the limit of an ipset list is 2^16 entries.
+A set of shell scripts which use ipset and iptables to ban a large number of IP addresses published in IP blacklists. `ipset` uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. However, the limit of an ipset list is 2^16 entries.
 
-The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
-
-Note: Updating the blacklists takes a long time (8m 20s on a TPLink TL-WDR3600), and running at a low priority (with 'nice') is recommended. The script uses 'ipset swap' to ensure the blacklist is never empty.
+Note: Updating the blacklists takes a long time (8m 20s on a TPLink TL-WDR3600), and running at a low priority (with `nice` and `ionice`) is recommended to avoid impacting packet routing & firewall performance. 
 
 ## Quick start for OpenWRT
-1. Copy scripts to /usr/local/bin and chmod +x
-2. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ip-blacklist.conf
-3. opkg update && opkg install ipset
-4. Create a firewall rule to DROP packets from blacklisted hosts
-5. Create a cron job to run update-blacklist.sh
+1. Copy the scripts to a temporary directory on your OpenWRT router
+2. Run `sh install.sh`
 
 # iptables filter rule
 ```
