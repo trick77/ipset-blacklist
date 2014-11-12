@@ -3,8 +3,11 @@
 # arg1 - blacklist name
 # arg2 - blacklist file
 
+ipset -exist create hash:$1 blacklist_$1 maxelem `wc -l $2`
+ipset -exist add blacklist blacklist_$1
+
 cat $2 | while IFS= read -r ip
 do
-    ipset add blacklist_$1 $ip
+    ipset -exist add blacklist_$1 $ip
 done
 
