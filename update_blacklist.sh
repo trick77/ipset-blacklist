@@ -34,8 +34,10 @@ download_lists(){
     # download blacklists
     for i in $*
     do
-        if wget --no-check-certificate -O - "$i" 2>> $WGET_LOG; then echo Error downloading $i && return 1; fi
+        (wget --no-check-certificate -O - "$i" 2>> $WGET_LOG) || echo Error downloading $i
     done
+
+    return 0
 }
 
 # make sure each IP/net is on a separate line and drop unneeded lines
@@ -91,18 +93,18 @@ if ! (download_lists $BLACKLISTS | process_raw_list > $TEMP_DIR/raw); then echo 
 # create blacklist for IP nets
 if ! ((grep -oE "$CIDR_REGEX" $TEMP_DIR/raw | uniq_cidr.lua &
 grep -oE "$RANGE_REGEX" $TEMP_DIR/raw & wait) |\
-tee $NET_BLACKLIST |\
+tee $NET_BLACKLIST > /dev/null # |\
 create_ipset hash:net blacklist_net); then echo Error creating hash:net blacklist && exit; fi
 
 
 # create blacklist for individual IP addrs
 if ! (grep -vE "$NET_REGEX" $TEMP_DIR/raw |\
 grep -oE "$IP_REGEX" |\
+normalize_ip.lua |\
 sort -u |\
-tee $IP_BLACKLIST |\
+tee $IP_BLACKLIST >/dev/null #|\
 create_ipset hash:ip blacklist_ip); then echo Error creating hash:ip blacklist && exit; fi
 
 
 # delete temp dir
 rm -rf $TEMP_DIR
-
