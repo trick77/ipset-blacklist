@@ -1,10 +1,11 @@
 #!/bin/sh
 # load a blacklist into an ipset
-# arg1 - blacklist name
-# arg2 - blacklist file
+# Usage: load_blacklist.sh [name] [file]
 
-ipset -exist create hash:$1 blacklist_$1 maxelem `wc -l $2`
-ipset -exist add blacklist blacklist_$1
+FW_RULE="INPUT -m set --match-set blacklist_$1 src -j DROP"
+
+ipset -exist create blacklist_$1 hash:$1 maxelem `wc -l $2 | cut -f1 -d" "`
+if ! iptables -C $FW_RULE; then iptables -I $FW_RULE; fi
 
 cat $2 | while IFS= read -r ip
 do
