@@ -4,3 +4,4 @@ chmod +x /etc/cron.daily/update-blacklist.sh
 yum install -y ipset
 ipset create blacklist hash:net
 /etc/cron.daily/update-blacklist.sh
+iptables -I INPUT -m set --match-set blacklist src -j DROP
