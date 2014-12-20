@@ -16,8 +16,12 @@ BLACKLISTS=(
 )
 for i in "${BLACKLISTS[@]}"
 do
-    curl "$i" > $IP_TMP
-    grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
+    HTTP_RC=`curl -o $IP_TMP -s -w "%{http_code}" "$i"`
+    if [ $HTTP_RC -eq 200 -o $HTTP_RC -eq 302 ]; then
+        grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
+    else
+        echo "Error: curl returned HTTP response code $HTTP_RC for URL $i"
+    fi
 done
 sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
