@@ -1,4 +1,19 @@
 #!/bin/bash
+
+if ! ipset list -name | grep -q 'blacklist$' ; then
+        cat <<EOCAT
+Error: The ipset-based blacklist was not yet defined. Please execute as root:
+
+       ipset create blacklist hash:net
+       iptables -I INPUT -m set --match-set blacklist src -j DROP
+
+A gateway may benefit from the additional line
+
+       iptables -I FORWARD -m set --match-set blacklist src -j DROP
+EOCAT
+        exit 1
+fi
+
 IP_TMP=/tmp/ip.tmp
 IP_BLACKLIST=/etc/ip-blacklist.conf
 IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
