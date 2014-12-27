@@ -1,4 +1,14 @@
 #!/bin/bash
+
+# Ensure availability of commands used later in script
+for command in ipset iptables egrep grep curl
+do
+    if ! which $command > /dev/null; then
+        echo "Error: Please install $command"
+        exit 1
+    fi
+done
+
 IP_TMP=/tmp/ip.tmp
 IP_BLACKLIST=/etc/ip-blacklist.conf
 IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
