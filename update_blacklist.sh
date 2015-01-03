@@ -93,7 +93,7 @@ if ! (download_lists $BLACKLISTS | process_raw_list > $TEMP_DIR/raw); then echo 
 # create blacklist for IP nets
 if ! ((grep -oE "$CIDR_REGEX" $TEMP_DIR/raw | uniq_cidr.lua &
 grep -oE "$RANGE_REGEX" $TEMP_DIR/raw & wait) |\
-tee $NET_BLACKLIST > /dev/null # |\
+tee $NET_BLACKLIST |\
 create_ipset hash:net blacklist_net); then echo Error creating hash:net blacklist && exit; fi
 
 
@@ -102,7 +102,7 @@ if ! (grep -vE "$NET_REGEX" $TEMP_DIR/raw |\
 grep -oE "$IP_REGEX" |\
 normalize_ip.lua |\
 sort -u |\
-tee $IP_BLACKLIST >/dev/null #|\
+tee $IP_BLACKLIST |\
 create_ipset hash:ip blacklist_ip); then echo Error creating hash:ip blacklist && exit; fi
 
 
