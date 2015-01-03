@@ -91,8 +91,8 @@ if ! mkdir -p $TEMP_DIR; then echo Error making temp dir && exit; fi
 if ! (download_lists $BLACKLISTS | process_raw_list > $TEMP_DIR/raw); then echo Error downloading blacklists && exit; fi
 
 # create blacklist for IP nets
-if ! ((grep -oE "$CIDR_REGEX" $TEMP_DIR/raw | uniq_cidr.lua &
-grep -oE "$RANGE_REGEX" $TEMP_DIR/raw & wait) |\
+if ! ((grep -oE "$CIDR_REGEX" $TEMP_DIR/raw | uniq_cidr.lua ;
+grep -oE "$RANGE_REGEX" $TEMP_DIR/raw) |\
 tee $NET_BLACKLIST |\
 create_ipset hash:net blacklist_net); then echo Error creating hash:net blacklist && exit; fi
 
