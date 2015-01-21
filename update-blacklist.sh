@@ -1,6 +1,7 @@
 #!/bin/bash
 IP_TMP=/tmp/ip.tmp
 IP_BLACKLIST=/etc/ip-blacklist.conf
+IP_IGNORELIST=/etc/ip-ignorelist.conf
 IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
 IP_BLACKLIST_CUSTOM=/etc/ip-blacklist-custom.conf # optional
 BLACKLISTS=(
@@ -20,6 +21,15 @@ BLACKLISTS=(
 #"http://rules.emergingthreats.net/blockrules/emerging-compromised.rules"
 #"http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt" # spamhaus drop + dshield list
 )
+
+# Search for $1 in the given array ($2)
+# http://stackoverflow.com/a/8574392/99923
+containsElement () {
+    local e
+    for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
+    return 1
+}
+
 for i in "${BLACKLISTS[@]}"
 do
     HTTP_RC=`curl -o $IP_TMP -s -w "%{http_code}" "$i"`
@@ -33,10 +43,21 @@ sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
 wc -l $IP_BLACKLIST
 
+# Default an empty ignore list
+IGNOREIPS=()
+
+# Read in "ignore" file (if exists) to allow overrides of our blacklists
+if [ -f $IP_IGNORELIST ]; then
+    IFS=$'\n' read -d '' -r -a IGNOREIPS < $IP_IGNORELIST
+fi
+
 ipset create blacklist_tmp hash:net
 egrep -v "^#|^$" $IP_BLACKLIST | while IFS= read -r ip
 do
+    # Only add entries we not listed in our IGNORE file
+    if ! containsElement "$ip" "${IGNOREIPS[@]}" ; then
         ipset add blacklist_tmp $ip
+    fi
 done
 
 if [ -f $IP_BLACKLIST_CUSTOM ]; then
