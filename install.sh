@@ -12,7 +12,7 @@ apt-get -qq --assume-yes install git ipset iptables > /dev/null
 
 if [[ ! -e /usr/local/bin/update-blacklist.sh ]]; then
 
-	git clone https://github.com/trick77/ipset-blacklist.git
+	git clone https://github.com/Xeoncross/ipset-blacklist.git
 	cd ipset-blacklist
 
 	# Install in system

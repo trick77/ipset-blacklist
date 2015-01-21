@@ -5,16 +5,18 @@ IP_IGNORELIST=/etc/ip-ignorelist.conf
 IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
 IP_BLACKLIST_CUSTOM=/etc/ip-blacklist-custom.conf # optional
 BLACKLISTS=(
-"http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
-"http://danger.rulez.sk/projects/bruteforceblocker/blist.php" # BruteForceBlocker IP List
+# Well-known master lists
 "http://www.spamhaus.org/drop/drop.txt" # Spamhaus Don't Route Or Peer List (DROP)
 "http://www.spamhaus.org/drop/edrop.txt" # Spamhaus Extended Don't Route Or Peer List (EDROP)
-"http://cinsscore.com/list/ci-badguys.txt" # C.I. Army Malicious IP List
+"http://cinsscore.com/list/ci-badguys.txt" # C.I. Army Malicious IP List (http://cinsscore.com/#list)
 "http://www.openbl.org/lists/base.txt"  # OpenBL.org 30 day List
 "http://www.autoshun.org/files/shunlist.csv" # Autoshun Shun List
 "http://lists.blocklist.de/lists/all.txt" # blocklist.de attackers
+"http://www.stopforumspam.com/downloads/toxic_ip_cidr.txt" # Over 5,000,000 monthly contributors
 
 # Additional IP/CIDR Lists
+#"http://danger.rulez.sk/projects/bruteforceblocker/blist.php" # BruteForceBlocker IP List (small community ruleset)
+#"http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
 #"http://www.dshield.org/ipsascii.html?limit=10000" # Recent DShield IP's
 #"http://check.torproject.org/cgi-bin/TorBulkExitList.py?ip=1.1.1.1"  # TOR Exit Nodes (also used in restricted countries!)
 #"https://www.maxmind.com/en/anonymous_proxies" # MaxMind GeoIP Anonymous Proxies (also used in restricted countries!)
@@ -30,17 +32,21 @@ containsElement () {
     return 1
 }
 
-for i in "${BLACKLISTS[@]}"
-do
-    HTTP_RC=`curl -o $IP_TMP -s -w "%{http_code}" "$i"`
-    if [ $HTTP_RC -eq 200 -o $HTTP_RC -eq 302 ]; then
-        grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
-    else
-        echo "Error: curl returned HTTP response code $HTTP_RC for URL $i"
-    fi
-done
-sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
-rm $IP_BLACKLIST_TMP
+# We can disable re-downloading and parsing the lists (if we only wanted to update the ignore list)
+if [ -z "$1" ]; then
+    for i in "${BLACKLISTS[@]}"
+    do
+        HTTP_RC=`curl -o $IP_TMP -s -w "%{http_code}" "$i"`
+        if [ $HTTP_RC -eq 200 -o $HTTP_RC -eq 302 ]; then
+            grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
+        else
+            echo "Error: curl returned HTTP response code $HTTP_RC for URL $i"
+        fi
+    done
+    sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
+    rm $IP_BLACKLIST_TMP
+fi
+
 wc -l $IP_BLACKLIST
 
 # Default an empty ignore list
@@ -61,10 +67,10 @@ do
 done
 
 if [ -f $IP_BLACKLIST_CUSTOM ]; then
-        egrep -v "^#|^$" $IP_BLACKLIST_CUSTOM | while IFS= read -r ip
-        do
-                ipset add blacklist_tmp $ip
-        done
+    egrep -v "^#|^$" $IP_BLACKLIST_CUSTOM | while IFS= read -r ip
+    do
+            ipset add blacklist_tmp $ip
+    done
 fi
 
 ipset swap blacklist blacklist_tmp
