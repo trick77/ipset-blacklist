@@ -5,29 +5,30 @@ A tiny Bash shell script which uses ipset and iptables to ban a large number of 
 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
-## Quick start for Debian/Ubuntu based installations
-1. Copy update-blacklist.sh into /usr/local/bin
-2. chmod +x /usr/local/bin/update-blacklist.sh
-2. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ip-blacklist.conf
-3. apt-get install ipset
-4. Create the ipset blacklist and insert it into your iptables input filter (see below). After proper testing, make sure to persist it in your firewall script or similar or the rules will be lost after the next reboot.
-5. Auto-update the blacklist using a cron job
+## Install for Debian/Ubuntu based installations
+
+	curl -sSL https://raw.githubusercontent.com/Xeoncross/ipset-blacklist/master/install.sh | bash
+
+# Files
+
+If you wish to add or remove IP addresses or CIDR ranges you can use the following additional files. You might have to create them.
+
+- The blacklisted IP addresses will be saved to `/etc/ip-blacklist.conf` (this is auto-generated each cron run)
+- You can add additional blacklisted IP/CIDR's to `/etc/ip-blacklist-custom.conf`
+- If you wish to exclude IP's then add one each line to `/etc/ip-ignorelist.conf`
 
 # iptables filter rule
-```
-ipset create blacklist hash:net
-iptables -I INPUT -m set --match-set blacklist src -j DROP
-```
+
+    iptables -I INPUT -m set --match-set blacklist src -j DROP
+
 Make sure to run this snippet in your firewall script. If you don't, the ipset blacklist and the iptables rule to ban the blacklisted ip addresses will be missing!
 
 # Cron job
-In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
-```
-MAILTO=root
-33 23 * * *      root /usr/local/bin/update-blacklist.sh
-```
+
+In order to auto-update the blacklist, the a cron jobs has been added to /etc/cron.d/update-blacklist
 
 ## Check for dropped packets
+
 Using iptables, you can check how many packets got dropped using the blacklist:
 
 ```
@@ -38,7 +39,9 @@ Chain INPUT (policy DROP 3064 packets, 177K bytes)
 ```
 
 ## Modify the blacklists you want to use
+
 Edit the BLACKLIST array to add or remove blacklists, or use it to add your own blacklists.
+
 ```
 BLACKLISTS=(
 "http://www.mysite.me/files/mycustomblacklist.txt" # Your personal blacklist
