@@ -5,14 +5,20 @@ IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
 IP_BLACKLIST_CUSTOM=/etc/ip-blacklist-custom.conf # optional
 BLACKLISTS=(
 "http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
-"http://check.torproject.org/cgi-bin/TorBulkExitList.py?ip=1.1.1.1"  # TOR Exit Nodes
-"https://www.maxmind.com/en/anonymous_proxies" # MaxMind GeoIP Anonymous Proxies
 "http://danger.rulez.sk/projects/bruteforceblocker/blist.php" # BruteForceBlocker IP List
-"http://www.spamhaus.org/drop/drop.lasso" # Spamhaus Don't Route Or Peer List (DROP)
+"http://www.spamhaus.org/drop/drop.txt" # Spamhaus Don't Route Or Peer List (DROP)
+"http://www.spamhaus.org/drop/edrop.txt" # Spamhaus Extended Don't Route Or Peer List (EDROP)
 "http://cinsscore.com/list/ci-badguys.txt" # C.I. Army Malicious IP List
 "http://www.openbl.org/lists/base.txt"  # OpenBL.org 30 day List
 "http://www.autoshun.org/files/shunlist.csv" # Autoshun Shun List
 "http://lists.blocklist.de/lists/all.txt" # blocklist.de attackers
+
+# Additional IP/CIDR Lists
+#"http://www.dshield.org/ipsascii.html?limit=10000" # Recent DShield IP's
+#"http://check.torproject.org/cgi-bin/TorBulkExitList.py?ip=1.1.1.1"  # TOR Exit Nodes (also used in restricted countries!)
+#"https://www.maxmind.com/en/anonymous_proxies" # MaxMind GeoIP Anonymous Proxies (also used in restricted countries!)
+#"http://rules.emergingthreats.net/blockrules/emerging-compromised.rules"
+#"http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt" # spamhaus drop + dshield list
 )
 for i in "${BLACKLISTS[@]}"
 do
