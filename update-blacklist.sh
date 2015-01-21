@@ -1,4 +1,14 @@
 #!/bin/bash
+
+# Testing host machine to have all tools executed downstream
+for command in ipset iptables egrep grep curl bla sort wc
+do
+    if ! which $command > /dev/null; then
+        echo "E: Please install $command"
+        exit 1
+    fi
+done
+
 IP_TMP=/tmp/ip.tmp
 IP_BLACKLIST=/etc/ip-blacklist.conf
 IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
