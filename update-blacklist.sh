@@ -69,7 +69,7 @@ done
 if [ -f $IP_BLACKLIST_CUSTOM ]; then
     egrep -v "^#|^$" $IP_BLACKLIST_CUSTOM | while IFS= read -r ip
     do
-            ipset add blacklist_tmp $ip
+        ipset add blacklist_tmp $ip
     done
 fi
 

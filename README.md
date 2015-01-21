@@ -7,7 +7,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 
 ## Install for Debian/Ubuntu based installations
 
-	curl -sSL https://raw.githubusercontent.com/Xeoncross/ipset-blacklist/master/update-blacklist.sh | bash
+	curl -sSL https://raw.githubusercontent.com/Xeoncross/ipset-blacklist/master/install.sh | bash
 
 # Files
 
