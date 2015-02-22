@@ -21,7 +21,7 @@ do
     if [ $HTTP_RC -eq 200 -o $HTTP_RC -eq 302 ]; then
         grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
     else
-        echo "Error: curl returned HTTP response code $HTTP_RC for URL $i"
+        echo "Warning: curl returned HTTP response code $HTTP_RC for URL $i"
     fi
     rm $IP_TMP
 done
