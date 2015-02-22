@@ -1,7 +1,6 @@
 #!/bin/bash
-IP_TMP=/tmp/ip.tmp
 IP_BLACKLIST=/etc/ip-blacklist.conf
-IP_BLACKLIST_TMP=/tmp/ip-blacklist.tmp
+IP_BLACKLIST_TMP=$(mktemp)
 IP_BLACKLIST_CUSTOM=/etc/ip-blacklist-custom.conf # optional
 BLACKLISTS=(
 "http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
@@ -17,12 +16,14 @@ BLACKLISTS=(
 )
 for i in "${BLACKLISTS[@]}"
 do
+    IP_TMP=$(mktemp)
     HTTP_RC=`curl -o $IP_TMP -s -w "%{http_code}" "$i"`
     if [ $HTTP_RC -eq 200 -o $HTTP_RC -eq 302 ]; then
         grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
     else
         echo "Error: curl returned HTTP response code $HTTP_RC for URL $i"
     fi
+    rm $IP_TMP
 done
 sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
