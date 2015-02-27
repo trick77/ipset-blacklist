@@ -1,6 +1,6 @@
 #!/bin/bash
-IP_BLACKLIST_RESTORE=$(mktemp)
-IP_BLACKLIST=/etc/ip-blacklist.conf
+IP_BLACKLIST_RESTORE=/etc/ip-blacklist.conf
+IP_BLACKLIST=/etc/ip-blacklist.list
 IP_BLACKLIST_TMP=$(mktemp)
 IP_BLACKLIST_CUSTOM=/etc/ip-blacklist-custom.conf # optional
 BLACKLISTS=(
@@ -31,6 +31,7 @@ wc -l $IP_BLACKLIST
 
 ipset destroy blacklist_tmp
 echo "create blacklist_tmp hash:net family inet hashsize 65536 maxelem 65536" > $IP_BLACKLIST_RESTORE
+echo "create blacklist hash:net -exist family inet hashsize 65536 maxelem 65536" >> $IP_BLACKLIST_RESTORE
 
 egrep -v "^#|^$" $IP_BLACKLIST | while IFS= read -r ip
 do
@@ -43,6 +44,6 @@ if [ -f $IP_BLACKLIST_CUSTOM ]; then
                 echo "add blacklist_tmp $ip" >> $IP_BLACKLIST_RESTORE
         done
 fi
+echo "swap blacklist blacklist_tmp" >> $IP_BLACKLIST_RESTORE
+echo "destroy blacklist_tmp" >> $IP_BLACKLIST_RESTORE
 ipset restore < $IP_BLACKLIST_RESTORE
-ipset swap blacklist blacklist_tmp
-ipset destroy blacklist_tmp

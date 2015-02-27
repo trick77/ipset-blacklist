@@ -1,0 +1,5 @@
+#!/bin/sh
+ipset restore < /etc/ip-blacklist.conf
+iptables-restore < /etc/iptables.rules
+
+exit 0
