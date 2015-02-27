@@ -1,11 +1,11 @@
 #!/bin/bash
-IP_BLACKLIST=/etc/ip-blacklist.conf
+IP_BLACKLIST_RESTORE=/etc/ip-blacklist.conf
+IP_BLACKLIST=/etc/ip-blacklist.list
 IP_BLACKLIST_TMP=$(mktemp)
 IP_BLACKLIST_CUSTOM=/etc/ip-blacklist-custom.conf # optional
 BLACKLISTS=(
 "http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
 "http://check.torproject.org/cgi-bin/TorBulkExitList.py?ip=1.1.1.1"  # TOR Exit Nodes
-"https://www.maxmind.com/en/anonymous-proxy-fraudulent-ip-address-list" # MaxMind GeoIP Anonymous Proxies
 "http://danger.rulez.sk/projects/bruteforceblocker/blist.php" # BruteForceBlocker IP List
 "http://www.spamhaus.org/drop/drop.lasso" # Spamhaus Don't Route Or Peer List (DROP)
 "http://cinsscore.com/list/ci-badguys.txt" # C.I. Army Malicious IP List
@@ -29,18 +29,21 @@ sort $IP_BLACKLIST_TMP -n | uniq > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
 wc -l $IP_BLACKLIST
 
-ipset create blacklist_tmp hash:net
+ipset destroy blacklist_tmp
+echo "create blacklist_tmp hash:net family inet hashsize 65536 maxelem 65536" > $IP_BLACKLIST_RESTORE
+echo "create blacklist hash:net -exist family inet hashsize 65536 maxelem 65536" >> $IP_BLACKLIST_RESTORE
+
 egrep -v "^#|^$" $IP_BLACKLIST | while IFS= read -r ip
 do
-        ipset add blacklist_tmp $ip
+    echo "add blacklist_tmp $ip" >> $IP_BLACKLIST_RESTORE
 done
 
 if [ -f $IP_BLACKLIST_CUSTOM ]; then
         egrep -v "^#|^$" $IP_BLACKLIST_CUSTOM | while IFS= read -r ip
         do
-                ipset add blacklist_tmp $ip
+                echo "add blacklist_tmp $ip" >> $IP_BLACKLIST_RESTORE
         done
 fi
-
-ipset swap blacklist blacklist_tmp
-ipset destroy blacklist_tmp
+echo "swap blacklist blacklist_tmp" >> $IP_BLACKLIST_RESTORE
+echo "destroy blacklist_tmp" >> $IP_BLACKLIST_RESTORE
+ipset restore < $IP_BLACKLIST_RESTORE
