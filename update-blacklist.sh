@@ -54,11 +54,13 @@ do
     HTTP_RC=`curl --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
     if [ $HTTP_RC -eq 200 -o $HTTP_RC -eq 302 ]; then
         grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
+	echo -n "."
     else
-        echo "Warning: curl returned HTTP response code $HTTP_RC for URL $i"
+        echo "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
     fi
     rm $IP_TMP
 done
+echo
 sort $IP_BLACKLIST_TMP -n | uniq | sed -e '/^127.0.0.0\|127.0.0.1\|0.0.0.0/d'  > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
 echo "Number of blacklisted IP/networks found: `wc -l $IP_BLACKLIST | cut -d' ' -f1`"
