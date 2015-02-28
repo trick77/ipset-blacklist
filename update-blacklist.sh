@@ -1,7 +1,5 @@
 #!/bin/bash
 IP_BLACKLIST_DIR=/etc/ip-blacklist
-IPSET=/sbin/ipset # apt-get install ipset on Ubuntu/Debian
-CURL=/usr/bin/curl # apt-get install curl on Ubuntu/Debian
 IPSET_BLACKLIST_NAME=blacklist # change it if it collides with a pre-existing ipset list
 IPSET_TMP_BLACKLIST_NAME=${IPSET_BLACKLIST_NAME}-tmp
 IP_BLACKLIST_RESTORE=${IP_BLACKLIST_DIR}/ip-blacklist.restore
@@ -22,15 +20,13 @@ BLACKLISTS=(
 "http://www.stopforumspam.com/downloads/toxic_ip_cidr.txt" # StopForumSpam
 )
 
-if [ ! -f $IPSET ]; then
-    echo "Error: could not find $IPSET"
-    exit 1
-fi
-
-if [ ! -f $CURL ]; then
-    echo "Error: could not find $CURL"
-    exit 1
-fi
+for command in ipset iptables egrep grep curl sort uniq wc
+do
+    if ! which $command > /dev/null; then
+        echo "Error: Please install $command"
+        exit 1
+    fi
+done
 
 if [ ! -d $IP_BLACKLIST_DIR ]; then
     echo "Error: please create $IP_BLACKLIST_DIR directory"
@@ -64,10 +60,6 @@ echo
 sort $IP_BLACKLIST_TMP -n | uniq | sed -e '/^127.0.0.0\|127.0.0.1\|0.0.0.0/d'  > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
 echo "Number of blacklisted IP/networks found: `wc -l $IP_BLACKLIST | cut -d' ' -f1`"
-if [ -f $IP_BLACKLIST_CUSTOM ]; then
-    echo "Number of IP/networks in custom blacklist: `wc -l $IP_BLACKLIST_CUSTOM | cut -d' ' -f1`"
-fi
-
 echo "create $IPSET_TMP_BLACKLIST_NAME -exist hash:net family inet hashsize 65536 maxelem 65536" > $IP_BLACKLIST_RESTORE
 echo "create $IPSET_BLACKLIST_NAME -exist hash:net -exist family inet hashsize 65536 maxelem 65536" >> $IP_BLACKLIST_RESTORE
 
@@ -81,8 +73,9 @@ if [ -f $IP_BLACKLIST_CUSTOM ]; then
     do
         echo "add $IPSET_TMP_BLACKLIST_NAME $ip" >> $IP_BLACKLIST_RESTORE
     done
+    echo "Number of IP/networks in custom blacklist: `wc -l $IP_BLACKLIST_CUSTOM | cut -d' ' -f1`"
 fi
 
 echo "swap $IPSET_BLACKLIST_NAME $IPSET_TMP_BLACKLIST_NAME" >> $IP_BLACKLIST_RESTORE
 echo "destroy $IPSET_TMP_BLACKLIST_NAME" >> $IP_BLACKLIST_RESTORE
-$IPSET restore < $IP_BLACKLIST_RESTORE
+ipset restore < $IP_BLACKLIST_RESTORE
