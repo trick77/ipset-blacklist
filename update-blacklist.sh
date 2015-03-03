@@ -54,7 +54,7 @@ do
         grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
 	echo -n "."
     else
-        echo "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
+        echo -e "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
     fi
     rm $IP_TMP
 done
