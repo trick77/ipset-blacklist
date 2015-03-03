@@ -5,6 +5,8 @@ IPSET_TMP_BLACKLIST_NAME=${IPSET_BLACKLIST_NAME}-tmp
 IP_BLACKLIST_RESTORE=${IP_BLACKLIST_DIR}/ip-blacklist.restore
 IP_BLACKLIST=${IP_BLACKLIST_DIR}/ip-blacklist.list
 IP_BLACKLIST_CUSTOM=${IP_BLACKLIST_DIR}/ip-blacklist-custom.list # optional, for your personal nemeses (no typo, plural)
+HASHSIZE=65536 # the initial hash size for the set. Don't touch unless you know what you're doing.
+MAXELEM=65536 # the maximal number of elements which can be stored in the set
 
 # List of URLs for IP blacklists. Currently, only IPv4 is supported in this script, everything else will be filtered.
 BLACKLISTS=(
@@ -23,7 +25,7 @@ BLACKLISTS=(
 for command in ipset iptables egrep grep curl sort uniq wc
 do
     if ! which $command > /dev/null; then
-        echo "Error: Please install $command"
+        echo "Error: please install $command"
         exit 1
     fi
 done
@@ -60,8 +62,8 @@ echo
 sort $IP_BLACKLIST_TMP -n | uniq | sed -e '/^127.0.0.0\|127.0.0.1\|0.0.0.0/d'  > $IP_BLACKLIST
 rm $IP_BLACKLIST_TMP
 echo "Number of blacklisted IP/networks found: `wc -l $IP_BLACKLIST | cut -d' ' -f1`"
-echo "create $IPSET_TMP_BLACKLIST_NAME -exist hash:net family inet hashsize 65536 maxelem 65536" > $IP_BLACKLIST_RESTORE
-echo "create $IPSET_BLACKLIST_NAME -exist hash:net -exist family inet hashsize 65536 maxelem 65536" >> $IP_BLACKLIST_RESTORE
+echo "create $IPSET_TMP_BLACKLIST_NAME -exist hash:net family inet hashsize $HASHSIZE maxelem $MAXELEM" > $IP_BLACKLIST_RESTORE
+echo "create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize $HASHSIZE maxelem $MAXELEM" >> $IP_BLACKLIST_RESTORE
 
 egrep -v "^#|^$" $IP_BLACKLIST | while IFS= read -r ip
 do
