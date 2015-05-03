@@ -8,7 +8,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 ## Quick start for Debian/Ubuntu based installations
 1. Copy update-blacklist.sh into /usr/local/bin
 2. chmod +x /usr/local/bin/update-blacklist.sh
-2. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ip-blacklist.conf
+2. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ipset-blacklist/ip-blacklist.restore
 3. apt-get install ipset
 4. Create the ipset blacklist and insert it into your iptables input filter (see below). After proper testing, make sure to persist it in your firewall script or similar or the rules will be lost after the next reboot.
 5. Auto-update the blacklist using a cron job
