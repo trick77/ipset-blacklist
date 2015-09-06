@@ -12,7 +12,7 @@ MAXELEM=65536 # the maximal number of elements which can be stored in the set
 BLACKLISTS=(
 "http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
 "http://check.torproject.org/cgi-bin/TorBulkExitList.py?ip=1.1.1.1"  # TOR Exit Nodes
-"https://www.maxmind.com/en/anonymous-proxy-fraudulent-ip-address-list" # MaxMind GeoIP Anonymous Proxies
+"https://www.maxmind.com/en/proxy-detection-sample-list" # MaxMind GeoIP Anonymous Proxies
 "http://danger.rulez.sk/projects/bruteforceblocker/blist.php" # BruteForceBlocker IP List
 "http://www.spamhaus.org/drop/drop.lasso" # Spamhaus Don't Route Or Peer List (DROP)
 "http://cinsscore.com/list/ci-badguys.txt" # C.I. Army Malicious IP List
