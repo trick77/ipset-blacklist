@@ -47,3 +47,4 @@ BLACKLISTS=(
 # I don't want this: "http://www.openbl.org/lists/base.txt"  # OpenBL.org 30 day List
 )
 ```
+If you for some reason want to ban all IP addresses from a certain country, have a look at [IPverse.net's](http://ipverse.net/ipblocks/data/countries/) aggregated IP lists which you can simply add to the BLACKLISTS variable.
