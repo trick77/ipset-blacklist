@@ -20,7 +20,7 @@ BLACKLISTS=(
 "http://www.autoshun.org/files/shunlist.csv" # Autoshun Shun List
 "http://lists.blocklist.de/lists/all.txt" # blocklist.de attackers
 "http://www.stopforumspam.com/downloads/toxic_ip_cidr.txt" # StopForumSpam
-# "http://www.ipdeny.com/ipblocks/data/countries/xx.zone" # Ban an entire country, see http://www.ipdeny.com/ipblocks/data/countries/
+# "http://ipverse.net/ipblocks/data/countries/xx.zone" # Ban an entire country, see http://ipverse.net/ipblocks/data/countries/
 )
 
 for command in ipset iptables egrep grep curl sort uniq wc
