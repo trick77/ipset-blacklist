@@ -6,7 +6,7 @@ A tiny Bash shell script which uses ipset and iptables to ban a large number of 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## Quick start for Debian/Ubuntu based installations
-1. wget -O /usr/local/bin/update-blacklist.sh https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
+1. wget -O /usr/local/sbin/update-blacklist.sh https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
 2. chmod +x /usr/local/sbin/update-blacklist.sh
 2. Modify update-blacklist.sh according to your needs. Per default, the blacklisted IP addresses will be saved to /etc/ipset-blacklist/ip-blacklist.restore
 3. apt-get install ipset
