@@ -51,7 +51,7 @@ IP_BLACKLIST_TMP=$(mktemp)
 for i in "${BLACKLISTS[@]}"
 do
     IP_TMP=$(mktemp)
-    HTTP_RC=`curl --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
+    HTTP_RC=`curl --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" -A "Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100302 Firefox/3.6.3" "$i"`
     if [ $HTTP_RC -eq 200 -o $HTTP_RC -eq 302 ]; then
         grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
 	echo -n "."
