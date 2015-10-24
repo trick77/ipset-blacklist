@@ -3,7 +3,7 @@ IP_BLACKLIST_DIR=/etc/ipset-blacklist
 IP_BLACKLIST_CONF=$IP_BLACKLIST_DIR/ipset-blacklist.conf
 
 if [ ! -f $IP_BLACKLIST_DIR/ipset-blacklist.conf ]; then
-   echo "Error: please create configuration file $IP_BLACKLIST_CONF"
+   echo "Error: please download configuration file $IP_BLACKLIST_CONF from the ipset-blacklist project on GitHub"
    exit 1
 fi
 
