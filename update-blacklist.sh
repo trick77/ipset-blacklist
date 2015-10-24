@@ -8,21 +8,7 @@ IP_BLACKLIST_CUSTOM=${IP_BLACKLIST_DIR}/ip-blacklist-custom.list # optional, for
 HASHSIZE=65536 # the initial hash size for the set. Don't touch unless you know what you're doing.
 MAXELEM=65536 # the maximal number of elements which can be stored in the set
 
-# List of URLs for IP blacklists. Currently, only IPv4 is supported in this script, everything else will be filtered.
-BLACKLISTS=(
-"http://www.projecthoneypot.org/list_of_ips.php?t=d&rss=1" # Project Honey Pot Directory of Dictionary Attacker IPs
-"http://check.torproject.org/cgi-bin/TorBulkExitList.py?ip=1.1.1.1"  # TOR Exit Nodes
-"https://www.maxmind.com/en/proxy-detection-sample-list" # MaxMind GeoIP Anonymous Proxies
-"http://danger.rulez.sk/projects/bruteforceblocker/blist.php" # BruteForceBlocker IP List
-"http://www.spamhaus.org/drop/drop.lasso" # Spamhaus Don't Route Or Peer List (DROP)
-"http://cinsscore.com/list/ci-badguys.txt" # C.I. Army Malicious IP List
-"http://www.openbl.org/lists/base.txt"  # OpenBL.org 30 day List
-"http://www.autoshun.org/files/shunlist.csv" # Autoshun Shun List
-"http://lists.blocklist.de/lists/all.txt" # blocklist.de attackers
-"http://www.stopforumspam.com/downloads/toxic_ip_cidr.txt" # StopForumSpam
-"http://blocklist.greensnow.co/greensnow.txt" # GreenSnow
-# "http://ipverse.net/ipblocks/data/countries/xx.zone" # Ban an entire country, see http://ipverse.net/ipblocks/data/countries/
-)
+source $IP_BLACKLIST_DIR/ipset-blacklist.conf
 
 for command in ipset iptables egrep grep curl sort uniq wc
 do
