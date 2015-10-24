@@ -7,6 +7,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 
 ## What's new
 - 10/24/2015: Outsourced the entire configuration in it's own configuration file. Makes updating the shell script way easier!
+- 10/22/2015: Changed the documentation, the script should be put in /usr/local/sbin not /usr/local/bin
 
 ## Quick start for Debian/Ubuntu based installations
 1. wget -O /usr/local/sbin/update-blacklist.sh https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
