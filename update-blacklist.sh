@@ -3,9 +3,10 @@ IP_BLACKLIST_DIR=/etc/ipset-blacklist
 IP_BLACKLIST_CONF=$IP_BLACKLIST_DIR/ipset-blacklist.conf
 
 if [ -f $IP_BLACKLIST_DIR/ipset-blacklist.conf ]; then
-   echo "Please create configuration file $IP_BLACKLIST_CONF"
+   echo "Error: please create configuration file $IP_BLACKLIST_CONF"
    exit 1
 fi
+
 source $IP_BLACKLIST_DIR/ipset-blacklist.conf
 
 for command in ipset iptables egrep grep curl sort uniq wc
