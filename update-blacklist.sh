@@ -1,6 +1,7 @@
 #!/bin/bash
+
 IP_BLACKLIST_DIR=/etc/ipset-blacklist
-IP_BLACKLIST_CONF=$IP_BLACKLIST_DIR/ipset-blacklist.conf
+IP_BLACKLIST_CONF="$IP_BLACKLIST_DIR/ipset-blacklist.conf"
 
 if [ ! -f $IP_BLACKLIST_CONF ]; then
    echo "Error: please download the ipset-blacklist.conf configuration file from GitHub and move it to $IP_BLACKLIST_CONF (see docs)"
@@ -9,62 +10,92 @@ fi
 
 source $IP_BLACKLIST_DIR/ipset-blacklist.conf
 
-for command in ipset iptables egrep grep curl sort uniq wc
-do
-    if ! which $command > /dev/null; then
-        echo "Error: please install $command"
-        exit 1
-    fi
-done
+if ! which curl egrep grep ipset iptables sed sort wc &> /dev/null; then
+    echo >&2 "Error: missing executables among: curl egrep grep ipset iptables sed sort wc"
+    exit 1
+fi
 
 if [ ! -d $IP_BLACKLIST_DIR ]; then
-    echo "Error: please create $IP_BLACKLIST_DIR directory"
+    echo >&2 "Error: please create $IP_BLACKLIST_DIR directory"
     exit 1
 fi
 
 if [ -f /etc/ip-blacklist.conf ]; then
-    echo "Error: please remove /etc/ip-blacklist.conf"
+    echo >&2 "Error: please remove /etc/ip-blacklist.conf"
     exit 1
 fi
 
 if [ -f /etc/ip-blacklist-custom.conf ]; then
-    echo "Error: please move /etc/ip-blacklist-custom.conf to the $IP_BLACKLIST_DIR directory and rename it to $IP_BLACKLIST_CUSTOM"
+    echo >&2 "Error: Please reference your /etc/ip-blacklist-custom.conf as a file:// URI inside the BLACKLISTS array"
     exit 1
+fi
+
+
+# create the ipset if needed (or abort if does not exists and FORCE=no)
+if ! ipset list -n|command grep -q "$IPSET_BLACKLIST_NAME"; then
+    if [[ ${FORCE:-no} != yes ]]; then
+	echo >&2 "Error: ipset does not exist yet, add it using:"
+	echo >&2 "# ipset create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-65536}"
+	exit 1
+    fi
+    if ! ipset create "$IPSET_BLACKLIST_NAME" -exist hash:net family inet hashsize "${HASHSIZE:-65536}"; then
+	echo >&2 "Error: while creating the initial ipset"
+	exit 1
+    fi
+fi
+
+# create the iptables binding if needed (or abort if does not exists and FORCE=no)
+if ! iptables -vL INPUT|command grep -q "match-set $IPSET_BLACKLIST_NAME"; then
+    # we may also have assumed that INPUT rule n°1 is about packets statistics (traffic monitoring)
+    if [[ ${FORCE:-no} != yes ]]; then
+	echo >&2 "Error: iptables does not have the needed ipset INPUT rule, add it using:"
+	echo >&2 "# iptables -I INPUT 1 -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
+	exit 1
+    fi
+    if ! iptables -I INPUT 2 -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP; then
+	echo >&2 "Error: while adding the --match-set ipset rule to iptables"
+	exit 1
+    fi
 fi
 
 IP_BLACKLIST_TMP=$(mktemp)
 for i in "${BLACKLISTS[@]}"
 do
     IP_TMP=$(mktemp)
-    HTTP_RC=`curl --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" -A "Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100302 Firefox/3.6.3" "$i"`
-    if [ $HTTP_RC -eq 200 -o $HTTP_RC -eq 302 ]; then
-        grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
-	echo -n "."
+    let HTTP_RC=`curl  -A "blacklist-update/script/github" --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
+    if (( $HTTP_RC == 200 || $HTTP_RC == 302 || $HTTP_RC == 0 )); then # "0" because file:/// returns 000
+        command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
+	[[ $VERBOSE == yes ]] && echo -n "."
     else
-        echo -e "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
+        echo >&2 -e "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
     fi
-    rm $IP_TMP
-done
-echo
-sort $IP_BLACKLIST_TMP -n | uniq | sed -e '/^127.0.0.0\|127.0.0.1\|0.0.0.0/d'  > $IP_BLACKLIST
-rm $IP_BLACKLIST_TMP
-echo "Number of blacklisted IP/networks found: `wc -l $IP_BLACKLIST | cut -d' ' -f1`"
-echo "create $IPSET_TMP_BLACKLIST_NAME -exist hash:net family inet hashsize $HASHSIZE maxelem $MAXELEM" > $IP_BLACKLIST_RESTORE
-echo "create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize $HASHSIZE maxelem $MAXELEM" >> $IP_BLACKLIST_RESTORE
-
-egrep -v "^#|^$" $IP_BLACKLIST | while IFS= read -r ip
-do
-    echo "add $IPSET_TMP_BLACKLIST_NAME $ip" >> $IP_BLACKLIST_RESTORE
+    rm -f "$IP_TMP"
 done
 
-if [ -f $IP_BLACKLIST_CUSTOM ]; then
-    egrep -v "^#|^$" $IP_BLACKLIST_CUSTOM | while IFS= read -r ip
-    do
-        echo "add $IPSET_TMP_BLACKLIST_NAME $ip" >> $IP_BLACKLIST_RESTORE
-    done
-    echo "Number of IP/networks in custom blacklist: `wc -l $IP_BLACKLIST_CUSTOM | cut -d' ' -f1`"
+# sort -nu does not work as expected
+sed -e '/^(10\.|127\.|172\.16\.|192\.168\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+rm -f "$IP_BLACKLIST_TMP"
+
+# family = inet for IPv4 only
+cat >| "$IP_BLACKLIST_RESTORE" <<EOF
+create $IPSET_TMP_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-65536} maxelem ${MAXELEM:-65536}
+create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-65536} maxelem ${MAXELEM:-65536}
+EOF
+
+
+# can be IPv4 including netmask notation
+# IPv6 ? -e "s/^([0-9a-f:./]+).*/add $IPSET_TMP_BLACKLIST_NAME \1/p" \ IPv6
+sed -rn -e '/^#|^$/d' \
+    -e "s/^([0-9./]+).*/add $IPSET_TMP_BLACKLIST_NAME \1/p" "$IP_BLACKLIST" >> "$IP_BLACKLIST_RESTORE"
+
+cat >> "$IP_BLACKLIST_RESTORE" <<EOF
+swap $IPSET_BLACKLIST_NAME $IPSET_TMP_BLACKLIST_NAME
+destroy $IPSET_TMP_BLACKLIST_NAME
+EOF
+
+ipset -file  "$IP_BLACKLIST_RESTORE" restore
+
+if [[ ${VERBOSE:-no} == yes ]]; then
+    echo
+    echo "Number of blacklisted IP/networks found: `wc -l $IP_BLACKLIST | cut -d' ' -f1`"
 fi
-
-echo "swap $IPSET_BLACKLIST_NAME $IPSET_TMP_BLACKLIST_NAME" >> $IP_BLACKLIST_RESTORE
-echo "destroy $IPSET_TMP_BLACKLIST_NAME" >> $IP_BLACKLIST_RESTORE
-ipset restore < $IP_BLACKLIST_RESTORE
