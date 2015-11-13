@@ -49,10 +49,10 @@ if ! iptables -vL INPUT|command grep -q "match-set $IPSET_BLACKLIST_NAME"; then
     # we may also have assumed that INPUT rule n°1 is about packets statistics (traffic monitoring)
     if [[ ${FORCE:-no} != yes ]]; then
 	echo >&2 "Error: iptables does not have the needed ipset INPUT rule, add it using:"
-	echo >&2 "# iptables -I INPUT 1 -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
+	echo >&2 "# iptables -I INPUT ${IPTABLES_IPSET_RULE_NUMBER:-1} -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
 	exit 1
     fi
-    if ! iptables -I INPUT 2 -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP; then
+    if ! iptables -I INPUT "${IPTABLES_IPSET_RULE_NUMBER:-1}" -m set --match-set "$IPSET_BLACKLIST_NAME" src -j DROP; then
 	echo >&2 "Error: while adding the --match-set ipset rule to iptables"
 	exit 1
     fi
@@ -65,7 +65,7 @@ do
     let HTTP_RC=`curl  -A "blacklist-update/script/github" --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
     if (( $HTTP_RC == 200 || $HTTP_RC == 302 || $HTTP_RC == 0 )); then # "0" because file:/// returns 000
         command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
-	[[ $VERBOSE == yes ]] && echo -n "."
+	[[ ${VERBOSE:-yes} == yes ]] && echo -n "."
     else
         echo >&2 -e "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
     fi
