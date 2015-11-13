@@ -73,7 +73,7 @@ do
 done
 
 # sort -nu does not work as expected
-sed -e '/^(10\.|127\.|172\.16\.|192\.168\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+sed -r -e '/^(10\.|127\.|172\.16\.|192\.168\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
 rm -f "$IP_BLACKLIST_TMP"
 
 # family = inet for IPv4 only
