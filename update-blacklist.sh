@@ -12,6 +12,11 @@ if ! which curl egrep grep ipset iptables sed sort wc &> /dev/null; then
     exit 1
 fi
 
+if [[ ! -d $(dirname "$IP_BLACKLIST") || ! -d $(dirname "$IP_BLACKLIST_RESTORE") ]]; then
+    echo >&2 "Missing directory(s): $(dirname "$IP_BLACKLIST" "$IP_BLACKLIST_RESTORE"|sort -u)"
+    exit 1
+fi
+
 if [ -f /etc/ip-blacklist.conf ]; then
     echo >&2 "Error: please remove /etc/ip-blacklist.conf"
     exit 1
@@ -56,7 +61,7 @@ do
     IP_TMP=$(mktemp)
     let HTTP_RC=`curl  -A "blacklist-update/script/github" --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
     if (( $HTTP_RC == 200 || $HTTP_RC == 302 || $HTTP_RC == 0 )); then # "0" because file:/// returns 000
-        command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
+        command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "$IP_TMP" >> "$IP_BLACKLIST_TMP"
 	[[ ${VERBOSE:-yes} == yes ]] && echo -n "."
     else
         echo >&2 -e "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
