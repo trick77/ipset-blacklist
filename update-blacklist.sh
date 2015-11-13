@@ -1,22 +1,14 @@
 #!/bin/bash
 
-IP_BLACKLIST_DIR=/etc/ipset-blacklist
-IP_BLACKLIST_CONF="$IP_BLACKLIST_DIR/ipset-blacklist.conf"
-
-if [ ! -f $IP_BLACKLIST_CONF ]; then
-   echo "Error: please download the ipset-blacklist.conf configuration file from GitHub and move it to $IP_BLACKLIST_CONF (see docs)"
-   exit 1
-fi
-
-source $IP_BLACKLIST_DIR/ipset-blacklist.conf
-
-if ! which curl egrep grep ipset iptables sed sort wc &> /dev/null; then
-    echo >&2 "Error: missing executables among: curl egrep grep ipset iptables sed sort wc"
+# usage update-blacklist.sh <configuration file>
+# eg: update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+if [[ -z "$1" ]] || ! source "$1"; then
+    echo "Can't load configuration file $1"
     exit 1
 fi
 
-if [ ! -d $IP_BLACKLIST_DIR ]; then
-    echo >&2 "Error: please create $IP_BLACKLIST_DIR directory"
+if ! which curl egrep grep ipset iptables sed sort wc &> /dev/null; then
+    echo >&2 "Error: missing executables among: curl egrep grep ipset iptables sed sort wc"
     exit 1
 fi
 
