@@ -1,22 +1,19 @@
 #!/bin/bash
 
-IP_BLACKLIST_DIR=/etc/ipset-blacklist
-IP_BLACKLIST_CONF="$IP_BLACKLIST_DIR/ipset-blacklist.conf"
-
-if [ ! -f $IP_BLACKLIST_CONF ]; then
-   echo "Error: please download the ipset-blacklist.conf configuration file from GitHub and move it to $IP_BLACKLIST_CONF (see docs)"
-   exit 1
+# usage update-blacklist.sh <configuration file>
+# eg: update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+if [[ -z "$1" ]] || ! source "$1"; then
+    echo "Can't load configuration file $1"
+    exit 1
 fi
-
-source $IP_BLACKLIST_DIR/ipset-blacklist.conf
 
 if ! which curl egrep grep ipset iptables sed sort wc &> /dev/null; then
     echo >&2 "Error: missing executables among: curl egrep grep ipset iptables sed sort wc"
     exit 1
 fi
 
-if [ ! -d $IP_BLACKLIST_DIR ]; then
-    echo >&2 "Error: please create $IP_BLACKLIST_DIR directory"
+if [[ ! -d $(dirname "$IP_BLACKLIST") || ! -d $(dirname "$IP_BLACKLIST_RESTORE") ]]; then
+    echo >&2 "Missing directory(s): $(dirname "$IP_BLACKLIST" "$IP_BLACKLIST_RESTORE"|sort -u)"
     exit 1
 fi
 
@@ -49,10 +46,10 @@ if ! iptables -vL INPUT|command grep -q "match-set $IPSET_BLACKLIST_NAME"; then
     # we may also have assumed that INPUT rule n°1 is about packets statistics (traffic monitoring)
     if [[ ${FORCE:-no} != yes ]]; then
 	echo >&2 "Error: iptables does not have the needed ipset INPUT rule, add it using:"
-	echo >&2 "# iptables -I INPUT 1 -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
+	echo >&2 "# iptables -I INPUT ${IPTABLES_IPSET_RULE_NUMBER:-1} -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
 	exit 1
     fi
-    if ! iptables -I INPUT 2 -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP; then
+    if ! iptables -I INPUT "${IPTABLES_IPSET_RULE_NUMBER:-1}" -m set --match-set "$IPSET_BLACKLIST_NAME" src -j DROP; then
 	echo >&2 "Error: while adding the --match-set ipset rule to iptables"
 	exit 1
     fi
@@ -64,8 +61,8 @@ do
     IP_TMP=$(mktemp)
     let HTTP_RC=`curl  -A "blacklist-update/script/github" --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
     if (( $HTTP_RC == 200 || $HTTP_RC == 302 || $HTTP_RC == 0 )); then # "0" because file:/// returns 000
-        command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' $IP_TMP >> $IP_BLACKLIST_TMP
-	[[ $VERBOSE == yes ]] && echo -n "."
+        command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "$IP_TMP" >> "$IP_BLACKLIST_TMP"
+	[[ ${VERBOSE:-yes} == yes ]] && echo -n "."
     else
         echo >&2 -e "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
     fi
@@ -73,7 +70,7 @@ do
 done
 
 # sort -nu does not work as expected
-sed -e '/^(10\.|127\.|172\.16\.|192\.168\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+sed -r -e '/^(10\.|127\.|172\.16\.|192\.168\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
 rm -f "$IP_BLACKLIST_TMP"
 
 # family = inet for IPv4 only
