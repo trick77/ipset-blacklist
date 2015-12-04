@@ -31,7 +31,7 @@ Make sure to run this snippet in your firewall script. If you don't, the ipset b
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
 ```
 MAILTO=root
-33 23 * * *      root /usr/local/sbin/update-blacklist.sh
+33 23 * * *      root /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
 ```
 
 ## Check for dropped packets
