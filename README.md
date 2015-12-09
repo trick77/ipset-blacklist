@@ -23,7 +23,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 ```
 # Enable blacklists
 ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
-iptables -I INPUT -m set --match-set blacklist src -j DROP
+iptables -I INPUT 1 -m set --match-set blacklist src -j DROP
 ```
 Make sure to run this snippet in your firewall script. If you don't, the ipset blacklist and the iptables rule to ban the blacklisted ip addresses will be missing!
 
