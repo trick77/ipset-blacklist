@@ -54,3 +54,14 @@ BLACKLISTS=(
 )
 ```
 If you for some reason want to ban all IP addresses from a certain country, have a look at [IPverse.net's](http://ipverse.net/ipblocks/data/countries/) aggregated IP lists which you can simply add to the BLACKLISTS variable.
+
+## Troubleshooting
+
+Error: 
+blacklist-tmp is full, maxelem 65536 reached   
+Solution:
+Increase the ipset list capacity. For instance, if you want to store up to 80,000 entries, add these lines to your ipset-blacklist.conf:  
+```
+MAXELEM=80000
+HASHSIZE=$MAXELEM
+```
