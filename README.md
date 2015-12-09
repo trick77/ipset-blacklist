@@ -57,7 +57,7 @@ If you for some reason want to ban all IP addresses from a certain country, have
 
 ## Troubleshooting
 
-```blacklist-tmp is full, maxelem 65536 reached```   
+```Set blacklist-tmp is full, maxelem 65536 reached```   
 Increase the ipset list capacity. For instance, if you want to store up to 80,000 entries, add these lines to your ipset-blacklist.conf:  
 ```
 MAXELEM=80000
