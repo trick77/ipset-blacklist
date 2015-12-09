@@ -2,8 +2,13 @@
 
 # usage update-blacklist.sh <configuration file>
 # eg: update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
-if [[ -z "$1" ]] || ! source "$1"; then
-    echo "Can't load configuration file $1"
+if [[ -z "$1" ]]; then
+    echo "Error: please specify a configuration file, e.g. $0 /etc/ipset-blacklist/ipset-blacklist.conf"
+    exit 1
+fi
+
+if ! source "$1"; then
+    echo "Error: can't load configuration file $1"
     exit 1
 fi
 
@@ -13,7 +18,7 @@ if ! which curl egrep grep ipset iptables sed sort wc &> /dev/null; then
 fi
 
 if [[ ! -d $(dirname "$IP_BLACKLIST") || ! -d $(dirname "$IP_BLACKLIST_RESTORE") ]]; then
-    echo >&2 "Missing directory(s): $(dirname "$IP_BLACKLIST" "$IP_BLACKLIST_RESTORE"|sort -u)"
+    echo >&2 "Error: missing directory(s): $(dirname "$IP_BLACKLIST" "$IP_BLACKLIST_RESTORE"|sort -u)"
     exit 1
 fi
 
@@ -23,10 +28,9 @@ if [ -f /etc/ip-blacklist.conf ]; then
 fi
 
 if [ -f /etc/ip-blacklist-custom.conf ]; then
-    echo >&2 "Error: Please reference your /etc/ip-blacklist-custom.conf as a file:// URI inside the BLACKLISTS array"
+    echo >&2 "Error: please reference your /etc/ip-blacklist-custom.conf as a file:// URI inside the BLACKLISTS array"
     exit 1
 fi
-
 
 # create the ipset if needed (or abort if does not exists and FORCE=no)
 if ! ipset list -n|command grep -q "$IPSET_BLACKLIST_NAME"; then
