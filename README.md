@@ -64,4 +64,4 @@ MAXELEM=80000
 ```
 
 ```ipset v6.20.1: Error in line 2: Set cannot be created: set with the same name already exists```   
-If this happens after changing the MAXELEM parameter: ipset seems to be unable to recreate an exising list with a different size. You will have to solve this manually by deleting and inserting the blacklist in ipset and iptables. A reboot will help as well and may be easier.
+If this happens after changing the MAXELEM parameter: ipset seems to be unable to recreate an exising list with a different size. You will have to solve this manually by deleting and inserting the blacklist in ipset and iptables. A reboot will help as well and may be easier. You may want to remove /etc/ipset-blacklist/ip-blacklist.restore too because it may still contain the old MAXELEM size.
