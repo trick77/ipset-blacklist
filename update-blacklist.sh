@@ -36,10 +36,10 @@ fi
 if ! ipset list -n|command grep -q "$IPSET_BLACKLIST_NAME"; then
     if [[ ${FORCE:-no} != yes ]]; then
 	echo >&2 "Error: ipset does not exist yet, add it using:"
-	echo >&2 "# ipset create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-65536}"
+	echo >&2 "# ipset create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-16384}"
 	exit 1
     fi
-    if ! ipset create "$IPSET_BLACKLIST_NAME" -exist hash:net family inet hashsize "${HASHSIZE:-65536}"; then
+    if ! ipset create "$IPSET_BLACKLIST_NAME" -exist hash:net family inet hashsize "${HASHSIZE:-16384}"; then
 	echo >&2 "Error: while creating the initial ipset"
 	exit 1
     fi
@@ -79,8 +79,8 @@ rm -f "$IP_BLACKLIST_TMP"
 
 # family = inet for IPv4 only
 cat >| "$IP_BLACKLIST_RESTORE" <<EOF
-create $IPSET_TMP_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-65536} maxelem ${MAXELEM:-65536}
-create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-65536} maxelem ${MAXELEM:-65536}
+create $IPSET_TMP_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}
+create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}
 EOF
 
 
