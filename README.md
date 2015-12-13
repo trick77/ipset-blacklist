@@ -39,12 +39,12 @@ Using iptables, you can check how many packets got dropped using the blacklist:
 
 ```
 drfalken@wopr:~# iptables -L -vn --line-numbers
-Chain INPUT (policy DROP 51 packets, 15605 bytes)
-num   pkts bytes target     prot opt in     out     source               destination
-1       14   981 DROP       all  --  *      *       0.0.0.0/0            0.0.0.0/0            match-set blacklist src
-2        0     0 fail2ban-vsftpd  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 21,20,990,989
-3      385 31521 fail2ban-ssh-ddos  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 22
-4      385 31521 fail2ban-ssh  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 22
+Chain INPUT (policy DROP)
+num  target            prot opt source    destination
+1    DROP              all  --  anywhere  anywhere match-set blacklist src
+2    fail2ban-vsftpd   tcp  --  anywhere  anywhere multiport dports ftp,ftp-data,ftps,ftps-data
+3    fail2ban-ssh-ddos tcp  --  anywhere  anywhere multiport dports ssh
+4    fail2ban-ssh      tcp  --  anywhere  anywhere multiport dports ssh
 ```
 The blacklist is most effective if it's the first rule in iptable's INPUT chain.
 
