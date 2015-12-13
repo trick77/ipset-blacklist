@@ -61,7 +61,6 @@ If you for some reason want to ban all IP addresses from a certain country, have
 Increase the ipset list capacity. For instance, if you want to store up to 80,000 entries, add these lines to your ipset-blacklist.conf:  
 ```
 MAXELEM=80000
-HASHSIZE=$MAXELEM
 ```
 
 ```ipset v6.20.1: Error in line 2: Set cannot be created: set with the same name already exists```   
