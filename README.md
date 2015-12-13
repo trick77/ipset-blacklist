@@ -25,7 +25,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
 iptables -I INPUT 1 -m set --match-set blacklist src -j DROP
 ```
-Make sure to run this snippet in your firewall script or just insert it to /etc/rc.local.
+Make sure to run this snippet in a firewall script or just insert it to /etc/rc.local. However, the blacklist do anything if the default policy of iptable's INPUT chain is set to ACCEPT.
 
 # Cron job
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
@@ -38,11 +38,15 @@ MAILTO=root
 Using iptables, you can check how many packets got dropped using the blacklist:
 
 ```
-drfalken@wopr:~# iptables -L -vn
-Chain INPUT (policy DROP 3064 packets, 177K bytes)
- pkts bytes target     prot opt in     out     source               destination
-   43  2498 DROP       all  --  *      *       0.0.0.0/0            0.0.0.0/0            match-set blacklist src
+drfalken@wopr:~# iptables -L -vn --line-numbers
+Chain INPUT (policy DROP 51 packets, 15605 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1       14   981 DROP       all  --  *      *       0.0.0.0/0            0.0.0.0/0            match-set blacklist src
+2        0     0 fail2ban-vsftpd  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 21,20,990,989
+3      385 31521 fail2ban-ssh-ddos  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 22
+4      385 31521 fail2ban-ssh  tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 22
 ```
+The blacklist is most effective if it's the first rule in iptable's INPUT chain.
 
 ## Modify the blacklists you want to use
 Edit the BLACKLIST array in /etc/ipset-blacklist/ipset-blacklist.conf to add or remove blacklists, or use it to add your own blacklists.
