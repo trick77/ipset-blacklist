@@ -25,7 +25,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
 iptables -I INPUT 1 -m set --match-set blacklist src -j DROP
 ```
-Make sure to run this snippet in a firewall script or just insert it to /etc/rc.local. However, the blacklist do anything if the default policy of iptable's INPUT chain is set to ACCEPT.
+Make sure to run this snippet in a firewall script or just insert it to /etc/rc.local. However, the blacklist won't do anything if the default policy of iptable's INPUT chain is set to ACCEPT.
 
 ## Cron job
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
