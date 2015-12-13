@@ -38,13 +38,13 @@ MAILTO=root
 Using iptables, you can check how many packets got dropped using the blacklist:
 
 ```
-drfalken@wopr:~# iptables -L -vn --line-numbers
-Chain INPUT (policy DROP)
-num  target            prot opt source    destination
-1    DROP              all  --  anywhere  anywhere match-set blacklist src
-2    fail2ban-vsftpd   tcp  --  anywhere  anywhere multiport dports ftp,ftp-data,ftps,ftps-data
-3    fail2ban-ssh-ddos tcp  --  anywhere  anywhere multiport dports ssh
-4    fail2ban-ssh      tcp  --  anywhere  anywhere multiport dports ssh
+drfalken@wopr:~# iptables -L -v --line-numbers
+Chain INPUT (policy DROP 60 packets, 17733 bytes)
+num   pkts bytes target            prot opt in  out source   destination
+1       15  1349 DROP              all  --  any any anywhere anywhere     match-set blacklist src
+2        0     0 fail2ban-vsftpd   tcp  --  any any anywhere anywhere     multiport dports ftp,ftp-data,ftps,ftps-data
+3      912 69233 fail2ban-ssh-ddos tcp  --  any any anywhere anywhere     multiport dports ssh
+4      912 69233 fail2ban-ssh      tcp  --  any any anywhere anywhere     multiport dports ssh
 ```
 The blacklist is most effective if it's the first rule in iptable's INPUT chain.
 
