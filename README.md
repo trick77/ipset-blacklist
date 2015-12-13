@@ -19,7 +19,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 4. Create the ipset blacklist and insert it into your iptables input filter (see below). After proper testing, make sure to persist it in your firewall script or similar or the rules will be lost after the next reboot.
 5. Auto-update the blacklist using a cron job
 
-# iptables filter rule
+## iptables filter rule
 ```
 # Enable blacklists
 ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
@@ -27,7 +27,7 @@ iptables -I INPUT 1 -m set --match-set blacklist src -j DROP
 ```
 Make sure to run this snippet in a firewall script or just insert it to /etc/rc.local. However, the blacklist do anything if the default policy of iptable's INPUT chain is set to ACCEPT.
 
-# Cron job
+## Cron job
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
 ```
 MAILTO=root
