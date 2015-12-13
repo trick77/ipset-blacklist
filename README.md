@@ -38,7 +38,7 @@ MAILTO=root
 Using iptables, you can check how many packets got dropped using the blacklist:
 
 ```
-drfalken@wopr:~# iptables -L -v --line-numbers
+drfalken@wopr:~# iptables -L INPUT -v --line-numbers
 Chain INPUT (policy DROP 60 packets, 17733 bytes)
 num   pkts bytes target            prot opt in  out source   destination
 1       15  1349 DROP              all  --  any any anywhere anywhere     match-set blacklist src
