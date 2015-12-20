@@ -39,7 +39,7 @@ if ! ipset list -n|command grep -q "$IPSET_BLACKLIST_NAME"; then
 	echo >&2 "# ipset create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}"
 	exit 1
     fi
-    if ! ipset create "$IPSET_BLACKLIST_NAME" -exist hash:net family inet hashsize "${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}"; then
+    if ! ipset create "$IPSET_BLACKLIST_NAME" -exist hash:net family inet hashsize "${HASHSIZE:-16384}" maxelem "${MAXELEM:-65536}"; then
 	echo >&2 "Error: while creating the initial ipset"
 	exit 1
     fi
