@@ -13,7 +13,7 @@ if ! source "$1"; then
 fi
 
 if ! which curl egrep grep ipset iptables sed sort wc &> /dev/null; then
-    echo >&2 "Error: missing executables among: curl egrep grep ipset iptables sed sort wc"
+    echo >&2 "Error: searching PATH fails to find executables among: curl egrep grep ipset iptables sed sort wc"
     exit 1
 fi
 
