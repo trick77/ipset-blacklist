@@ -6,6 +6,7 @@ A tiny Bash shell script which uses ipset and iptables to ban a large number of 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## What's new
+- 11/04/2016: Documentation added to show how to prevent fail2ban from inserting its rules above the ipset-blacklist when restarting the fail2ban service
 - 11/11/2015: Merged all suggestions from https://github.com/drzraf
 - 10/24/2015: Outsourced the entire configuration in it's own configuration file. Makes updating the shell script way easier!
 - 10/22/2015: Changed the documentation, the script should be put in /usr/local/sbin not /usr/local/bin
@@ -47,7 +48,13 @@ num   pkts bytes target            prot opt in  out source   destination
 3      912 69233 fail2ban-ssh-ddos tcp  --  any any anywhere anywhere     multiport dports ssh
 4      912 69233 fail2ban-ssh      tcp  --  any any anywhere anywhere     multiport dports ssh
 ```
-The blacklist is most effective if it's the first rule in iptable's INPUT chain.
+Since iptable rules are parsed sequentally, the ipset-blacklist is most effective if it's the **topmost** rule in iptable's INPUT chain. However, restarting fail2ban usually leads to a situation, where fail2ban inserts its rules above our blacklist drop rule. To prevent this from happening, we have to tell fail2ban to insert its rules at the 2nd position. Since the iptables-multiport action is the default ban-action, we have to add a file to /etc/fail2ban/action.d called iptables-multiport.local with the following content:
+```
+[Definition]
+actionstart = <iptables> -N f2b-<name>
+              <iptables> -A f2b-<name> -j <returntype>
+              <iptables> -I <chain> 2 -p <protocol> -m multiport --dports <port> -j f2b-<name>
+```
 
 ## Modify the blacklists you want to use
 Edit the BLACKLIST array in /etc/ipset-blacklist/ipset-blacklist.conf to add or remove blacklists, or use it to add your own blacklists.
@@ -70,3 +77,6 @@ MAXELEM=80000
 
 ```ipset v6.20.1: Error in line 2: Set cannot be created: set with the same name already exists```   
 If this happens after changing the MAXELEM parameter: ipset seems to be unable to recreate an exising list with a different size. You will have to solve this manually by deleting and inserting the blacklist in ipset and iptables. A reboot will help as well and may be easier. You may want to remove /etc/ipset-blacklist/ip-blacklist.restore too because it may still contain the old MAXELEM size.
+
+```ipset v6.12: No command specified: unknown argument -file```
+You're using an outdated version of ipset which is not supported.
