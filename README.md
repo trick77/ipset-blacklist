@@ -10,6 +10,10 @@ A tiny Bash shell script which uses ipset and iptables to ban a large number of 
 - 10/24/2015: Outsourced the entire configuration in it's own configuration file. Makes updating the shell script way easier!
 - 10/22/2015: Changed the documentation, the script should be put in /usr/local/sbin not /usr/local/bin
 
+# Quick start for RHEL/CentOS based installations
+
+`\curl -sSL http://bit.ly/iptables-drop-blacklist | bash`
+ 
 ## Quick start for Debian/Ubuntu based installations
 1. wget -O /usr/local/sbin/update-blacklist.sh https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
 2. chmod +x /usr/local/sbin/update-blacklist.sh
