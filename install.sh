@@ -1,5 +1,5 @@
 #!/bin/sh
-\curl -sSL https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh > /usr/local/sbin/cron.daily/update-blacklist.sh
+\curl -sSL https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh > /usr/local/sbin/update-blacklist.sh
 mkdir -p /etc/ipset-blacklist ; wget -O /etc/ipset-blacklist/ipset-blacklist.conf https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist.conf
 chmod +x /etc/cron.daily/update-blacklist.sh
 yum install -y ipset
