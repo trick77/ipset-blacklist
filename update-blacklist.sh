@@ -60,25 +60,20 @@ if ! iptables -vL INPUT|command grep -q "match-set $IPSET_BLACKLIST_NAME"; then
 fi
 
 IP_BLACKLIST_TMP=$(mktemp)
-CURL_ERROR=false
 for i in "${BLACKLISTS[@]}"
 do
     IP_TMP=$(mktemp)
     let HTTP_RC=`curl -L -A "blacklist-update/script/github" --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
     if (( $HTTP_RC == 200 || $HTTP_RC == 302 || $HTTP_RC == 0 )); then # "0" because file:/// returns 000
-        command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "$IP_TMP" >> "$IP_BLACKLIST_TMP"
+	command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "$IP_TMP" >> "$IP_BLACKLIST_TMP"
 	[[ ${VERBOSE:-yes} == yes ]] && echo -n "."
+    elif (( $HTTP_RC == 503 )); then
+        echo -e "\nUnavailable (${HTTP_RC}): $i"
     else
-        CURL_ERROR=true
         echo >&2 -e "\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
     fi
     rm -f "$IP_TMP"
 done
-
-if [[ "${CURL_ERROR}" = true && ${IGNORE_CURL_ERRORS:-yes} == no ]]; then
-    echo >&2 -e "\nError: curl returned an HTTP error code. Please fix or set IGNORE_CURL_ERRORS to yes"
-    exit 1
-fi
 
 # sort -nu does not work as expected
 sed -r -e '/^(10\.|127\.|172\.16\.|192\.168\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
