@@ -49,12 +49,14 @@ num   pkts bytes target            prot opt in  out source   destination
 3      912 69233 fail2ban-ssh-ddos tcp  --  any any anywhere anywhere     multiport dports ssh
 4      912 69233 fail2ban-ssh      tcp  --  any any anywhere anywhere     multiport dports ssh
 ```
-Since iptable rules are parsed sequentally, the ipset-blacklist is most effective if it's the **topmost** rule in iptable's INPUT chain. However, restarting fail2ban usually leads to a situation, where fail2ban inserts its rules above our blacklist drop rule. To prevent this from happening, we have to tell fail2ban to insert its rules at the 2nd position. Since the iptables-multiport action is the default ban-action, we have to add a file to /etc/fail2ban/action.d called iptables-multiport.local with the following content:
+Since iptable rules are parsed sequentally, the ipset-blacklist is most effective if it's the **topmost** rule in iptable's INPUT chain. However, restarting fail2ban usually leads to a situation, where fail2ban inserts its rules above our blacklist drop rule. To prevent this from happening, we have to tell fail2ban to insert its rules at the 2nd position. Since the iptables-multiport action is the default ban-action, we have to add a file to /etc/fail2ban/action.d:
 ```
+tee << EOF /etc/fail2ban/action.d/iptables-multiport.local
 [Definition]
 actionstart = <iptables> -N f2b-<name>
               <iptables> -A f2b-<name> -j <returntype>
               <iptables> -I <chain> 2 -p <protocol> -m multiport --dports <port> -j f2b-<name>
+EOF
 ```
 
 ## Modify the blacklists you want to use
