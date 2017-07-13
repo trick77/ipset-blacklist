@@ -6,13 +6,25 @@ A tiny Bash shell script which uses ipset and iptables to ban a large number of 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## What's new
+- 07/12/2017: Auto-setup script and Ubiquity EdgeRouter support, don't block DHCP
 - 01/20/2017: Ignoring "Service unavailable" HTTP status code, removed IGNORE_CURL_ERRORS 
 - 11/04/2016: Documentation added to show how to prevent fail2ban from inserting its rules above the ipset-blacklist when restarting the fail2ban service
 - 11/11/2015: Merged all suggestions from https://github.com/drzraf
 - 10/24/2015: Outsourced the entire configuration in it's own configuration file. Makes updating the shell script way easier!
 - 10/22/2015: Changed the documentation, the script should be put in /usr/local/sbin not /usr/local/bin
 
-## Quick start for Debian/Ubuntu based installations
+## Automatic setup for Debian/Ubuntu based distributions (including vyatta/vyos variants such as Ubiquity EdgeRouters)
+1. `wget https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist-install.sh`
+2. `sudo sh ./ipset-blacklist-install.sh`
+3. the default operation of the script is to install or repair the installation, preserving the config
+4. if you have a custom /etc/rc.local, check that it got updated correctly (not applicable to vyatta)
+5. to uninstall run: `sudo sh ./ipset-blacklist-install.sh purge`
+6. to update scripts from the repo: `sudo sh ./ipset-blacklist-install.sh update` the config will be written to `/etc/ipset-blacklist/ipset-blacklist.conf.new`, unless you add `--force` in which case the config will be overwritten with the new default config
+7. the installation will automatically repair itself on EdgeRouters when you upgrade the firmware, but you must have the debian repositories in your configuration, your custom config will persist across firmware updates as well
+8. the script does exactly what the manual instructions specify below
+9. if you did not have fail2ban installed at the time you ran the script and install it later, rerun the script to update the fail2ban config (this will also happen daily and on reboot)
+
+## Manual setup for Debian/Ubuntu based installations
 1. wget -O /usr/local/sbin/update-blacklist.sh https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
 2. chmod +x /usr/local/sbin/update-blacklist.sh
 2. mkdir -p /etc/ipset-blacklist ; wget -O /etc/ipset-blacklist/ipset-blacklist.conf https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist.conf

@@ -2,13 +2,11 @@
 
 # usage update-blacklist.sh <configuration file>
 # eg: update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
-if [[ -z "$1" ]]; then
-    echo "Error: please specify a configuration file, e.g. $0 /etc/ipset-blacklist/ipset-blacklist.conf"
-    exit 1
-fi
 
-if ! source "$1"; then
-    echo "Error: can't load configuration file $1"
+conf=${1:-/etc/ipset-blacklist/ipset-blacklist.conf}
+
+if ! source "$conf"; then
+    echo "Error: can't load configuration file $conf"
     exit 1
 fi
 
@@ -65,7 +63,32 @@ do
     IP_TMP=$(mktemp)
     let HTTP_RC=`curl -L -A "blacklist-update/script/github" --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
     if (( $HTTP_RC == 200 || $HTTP_RC == 302 || $HTTP_RC == 0 )); then # "0" because file:/// returns 000
-	command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "$IP_TMP" >> "$IP_BLACKLIST_TMP"
+        command sed -n '
+            /^.*[^0-9.]10\./d
+            /^.*[^0-9.]127\./d
+            /^.*[^0-9.]172\.1[6-9]\./d
+            /^.*[^0-9.]172\.2[0-9]\./d
+            /^.*[^0-9.]172\.3[0-1]\./d
+            /^.*[^0-9.]192\.168\./d
+
+            /^.*[^0-9.]00*\.00*\.00*\.00*[^0-9]/d
+            /^.*[^0-9.]00*\.00*\.00*\.00*[	 ]*$/d
+
+            /^[	 ]*10\./d
+            /^[	 ]*127\./d
+            /^[	 ]*172\.1[6-9]\./d
+            /^[	 ]*172\.2[0-9]\./d
+            /^[	 ]*172\.3[0-1]\./d
+            /^[	 ]*192\.168\./d
+
+            /^[	 ]*00*\.00*\.00*\.00*[^0-9]/d
+            /^[	 ]*00*\.00*\.00*\.00*[	 ]*$/d
+
+            s/^.*[^0-9.]\(\([0-9]\{1,3\}\.\)\{3\}[0-9]\{1,3\}\(\/[0-9]\{1,2\}\)\{0,1\}\).*$/\1/p
+            t
+
+            s/^[	 ]*\(\([0-9]\{1,3\}\.\)\{3\}[0-9]\{1,3\}\(\/[0-9]\{1,2\}\)\{0,1\}\).*$/\1/p
+        ' "$IP_TMP" | awk 1 >> "$IP_BLACKLIST_TMP"
 	[[ ${VERBOSE:-yes} == yes ]] && echo -n "."
     elif (( $HTTP_RC == 503 )); then
         echo -e "\nUnavailable (${HTTP_RC}): $i"
@@ -76,7 +99,7 @@ do
 done
 
 # sort -nu does not work as expected
-sed -r -e '/^(10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+sort -n < "$IP_BLACKLIST_TMP" | sort -mu >| "$IP_BLACKLIST"
 rm -f "$IP_BLACKLIST_TMP"
 
 # family = inet for IPv4 only
@@ -88,15 +111,17 @@ EOF
 
 # can be IPv4 including netmask notation
 # IPv6 ? -e "s/^([0-9a-f:./]+).*/add $IPSET_TMP_BLACKLIST_NAME \1/p" \ IPv6
-sed -rn -e '/^#|^$/d' \
-    -e "s/^([0-9./]+).*/add $IPSET_TMP_BLACKLIST_NAME \1/p" "$IP_BLACKLIST" >> "$IP_BLACKLIST_RESTORE"
+sed -n '
+    s/^\([0-9./]\{1,\}\).*/add '"$IPSET_TMP_BLACKLIST_NAME"' \1/p
+' "$IP_BLACKLIST" >> "$IP_BLACKLIST_RESTORE"
 
 cat >> "$IP_BLACKLIST_RESTORE" <<EOF
 swap $IPSET_BLACKLIST_NAME $IPSET_TMP_BLACKLIST_NAME
 destroy $IPSET_TMP_BLACKLIST_NAME
 EOF
 
-ipset -file  "$IP_BLACKLIST_RESTORE" restore
+# -file is not supported on older versions of ipset
+ipset restore < "$IP_BLACKLIST_RESTORE"
 
 if [[ ${VERBOSE:-no} == yes ]]; then
     echo
