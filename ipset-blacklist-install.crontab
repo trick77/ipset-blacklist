@@ -1,0 +1,5 @@
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=root
+33 23 * * *      root /usr/local/sbin/ipset-blacklist-install.sh check-install
+
+# vim: ft=crontab :
