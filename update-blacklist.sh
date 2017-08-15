@@ -1,7 +1,8 @@
 #!/bin/bash
-
+#
 # usage update-blacklist.sh <configuration file>
 # eg: update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+#
 if [[ -z "$1" ]]; then
     echo "Error: please specify a configuration file, e.g. $0 /etc/ipset-blacklist/ipset-blacklist.conf"
     exit 1
