@@ -66,6 +66,7 @@ do
     let HTTP_RC=`curl -L -A "blacklist-update/script/github" --connect-timeout 10 --max-time 10 -o $IP_TMP -s -w "%{http_code}" "$i"`
     if (( $HTTP_RC == 200 || $HTTP_RC == 302 || $HTTP_RC == 0 )); then # "0" because file:/// returns 000
 	command grep -Po '(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "$IP_TMP" >> "$IP_BLACKLIST_TMP"
+
 	[[ ${VERBOSE:-yes} == yes ]] && echo -n "."
     elif (( $HTTP_RC == 503 )); then
         echo -e "\nUnavailable (${HTTP_RC}): $i"
@@ -76,7 +77,7 @@ do
 done
 
 # sort -nu does not work as expected
-sed -r -e '/^(10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
 rm -f "$IP_BLACKLIST_TMP"
 
 # family = inet for IPv4 only
