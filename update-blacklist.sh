@@ -22,16 +22,6 @@ if [[ ! -d $(dirname "$IP_BLACKLIST") || ! -d $(dirname "$IP_BLACKLIST_RESTORE")
     exit 1
 fi
 
-if [ -f /etc/ip-blacklist.conf ]; then
-    echo >&2 "Error: please remove /etc/ip-blacklist.conf"
-    exit 1
-fi
-
-if [ -f /etc/ip-blacklist-custom.conf ]; then
-    echo >&2 "Error: please reference your /etc/ip-blacklist-custom.conf as a file:// URI inside the BLACKLISTS array"
-    exit 1
-fi
-
 # create the ipset if needed (or abort if does not exists and FORCE=no)
 if ! ipset list -n|command grep -q "$IPSET_BLACKLIST_NAME"; then
     if [[ ${FORCE:-no} != yes ]]; then
