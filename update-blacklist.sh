@@ -74,8 +74,25 @@ do
   rm -f "$IP_TMP"
 done
 
+ip_list_to_regexp() {
+    sed -r -e '/^ *$/d' -e '/^#/d' -e '/^[0-9]/s/^/^/' -e 's/([^\\])\./\1\\./g'
+}
+
+filterout_whitelisted() {
+    if [[ -f "${IP_WHITELIST:-/etc/ipset-blacklist/whitelist.txt}" ]]; then
+	grep -Ev -f <(ip_list_to_regexp < "${IP_WHITELIST:-/etc/ipset-blacklist/whitelist.txt}") -
+    else
+	cat
+    fi
+}
+
 # sort -nu does not work as expected
-sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' "$IP_BLACKLIST_TMP" \
+    | filterout_whitelisted \
+    | sort -n \
+    | sort -mu \
+    >| "$IP_BLACKLIST"
+
 if [[ ${DO_OPTIMIZE_CIDR} == yes ]]; then
   if [[ ${VERBOSE:-no} == yes ]]; then
     echo -e "\\nAddresses before CIDR optimization: $(wc -l "$IP_BLACKLIST" | cut -d' ' -f1)"
