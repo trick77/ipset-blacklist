@@ -75,7 +75,7 @@ do
 done
 
 ip_list_to_regexp() {
-    sed -r -e '/^ *$/d' -e '/^#/d' -e '/^[0-9]/s/^/^/' -e 's/([^\\])\./\1\\./g'
+    sed -r -e '/^ *$/d' -e '/^#/d' -e '/^ *[0-9]/s/^ */^/' -e 's/([^\\])\./\1\\./g'
 }
 
 filterout_whitelisted() {
