@@ -6,6 +6,7 @@ A tiny Bash shell script which uses ipset and iptables to ban a large number of 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## What's new
+- 05/10/2018: Added regex filter improvements from @sbujam
 - 08/15/2017: Filtering default gateway and multicast ranges
 - 01/20/2017: Ignoring "Service unavailable" HTTP status code, removed IGNORE_CURL_ERRORS 
 - 11/04/2016: Documentation added to show how to prevent fail2ban from inserting its rules above the ipset-blacklist when restarting the fail2ban service
