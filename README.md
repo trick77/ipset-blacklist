@@ -1,15 +1,16 @@
 ipset-blacklist
 ===============
 
-A tiny Bash shell script which uses ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. ~~However, the limit of an ipset list is 2^16 entries.~~
+A Bash shell script which uses ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. ~~However, the limit of an ipset list is 2^16 entries.~~
 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## What's new
+- 05/10/2018: Added regex filter improvements from [@sbujam](https://github.com/sbujam)
 - 08/15/2017: Filtering default gateway and multicast ranges
 - 01/20/2017: Ignoring "Service unavailable" HTTP status code, removed IGNORE_CURL_ERRORS 
 - 11/04/2016: Documentation added to show how to prevent fail2ban from inserting its rules above the ipset-blacklist when restarting the fail2ban service
-- 11/11/2015: Merged all suggestions from https://github.com/drzraf
+- 11/11/2015: Merged all suggestions from [@drzraf](https://github.com/drzraf)
 - 10/24/2015: Outsourced the entire configuration in it's own configuration file. Makes updating the shell script way easier!
 - 10/22/2015: Changed the documentation, the script should be put in /usr/local/sbin not /usr/local/bin
 
@@ -28,7 +29,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
 iptables -I INPUT 1 -m set --match-set blacklist src -j DROP
 ```
-Make sure to run this snippet in a firewall script or just insert it to /etc/rc.local. However, the blacklist won't do anything if the default policy of iptable's INPUT chain is set to ACCEPT.
+Make sure to run this snippet in a firewall script or just insert it to /etc/rc.local.
 
 ## Cron job
 In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
@@ -50,7 +51,7 @@ num   pkts bytes target            prot opt in  out source   destination
 3      912 69233 fail2ban-ssh-ddos tcp  --  any any anywhere anywhere     multiport dports ssh
 4      912 69233 fail2ban-ssh      tcp  --  any any anywhere anywhere     multiport dports ssh
 ```
-Since iptable rules are parsed sequentally, the ipset-blacklist is most effective if it's the **topmost** rule in iptable's INPUT chain. However, restarting fail2ban usually leads to a situation, where fail2ban inserts its rules above our blacklist drop rule. To prevent this from happening, we have to tell fail2ban to insert its rules at the 2nd position. Since the iptables-multiport action is the default ban-action, we have to add a file to /etc/fail2ban/action.d:
+Since iptable rules are parsed sequentally, the ipset-blacklist is most effective if it's the **topmost** rule in iptable's INPUT chain. However, restarting fail2ban usually leads to a situation, where fail2ban inserts its rules above our blacklist drop rule. To prevent this from happening we have to tell fail2ban to insert its rules at the 2nd position. Since the iptables-multiport action is the default ban-action we have to add a file to /etc/fail2ban/action.d:
 ```
 tee << EOF /etc/fail2ban/action.d/iptables-multiport.local
 [Definition]
@@ -59,6 +60,7 @@ actionstart = <iptables> -N f2b-<name>
               <iptables> -I <chain> 2 -p <protocol> -m multiport --dports <port> -j f2b-<name>
 EOF
 ```
+(Please keep in in mind this is entirely optional, it just makes dropping blacklisted IP addresses most effective)
 
 ## Modify the blacklists you want to use
 Edit the BLACKLIST array in /etc/ipset-blacklist/ipset-blacklist.conf to add or remove blacklists, or use it to add your own blacklists.
