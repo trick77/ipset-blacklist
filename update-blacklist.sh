@@ -21,6 +21,10 @@ if ! exists curl && exists egrep && exists grep && exists ipset && exists iptabl
   exit 1
 fi
 
+if exists iprange && [[ ${OPTIMIZE_CIDR:-yes} != no ]]; then
+  DO_OPTIMIZE_CIDR=yes
+fi
+
 if [[ ! -d $(dirname "$IP_BLACKLIST") || ! -d $(dirname "$IP_BLACKLIST_RESTORE") ]]; then
   echo >&2 "Error: missing directory(s): $(dirname "$IP_BLACKLIST" "$IP_BLACKLIST_RESTORE"|sort -u)"
   exit 1
@@ -71,6 +75,21 @@ done
 
 # sort -nu does not work as expected
 sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+if [[ ${DO_OPTIMIZE_CIDR:-yes} == yes ]]; then
+  if [[ ${VERBOSE:-no} == yes ]]; then
+    echo -e "\\nIP/networks before CIDR optimization: $(wc -l "$IP_BLACKLIST" | cut -d' ' -f1)"
+  fi
+  < "$IP_BLACKLIST" iprange --optimize - > "$IP_BLACKLIST_TMP" 2>/dev/null
+  if [[ ${VERBOSE:-no} == yes ]]; then
+    echo "IP/networks after CIDR optimization:  $(wc -l "$IP_BLACKLIST_TMP" | cut -d' ' -f1)"
+  fi
+  cp "$IP_BLACKLIST_TMP" "$IP_BLACKLIST"
+else
+  if [[ ${VERBOSE:-no} == yes ]]; then
+    echo "No CIDR optimization performed"
+  fi
+fi
+
 rm -f "$IP_BLACKLIST_TMP"
 
 # family = inet for IPv4 only

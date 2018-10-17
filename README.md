@@ -6,6 +6,8 @@ A Bash shell script which uses ipset and iptables to ban a large number of IP ad
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## What's new
+- 10/17/2018: Added support for CIDR aggregation if iprange command is available
+- 10/17/2018: Merged Shellcheck PR from [@extremeshok](https://github.com/extremeshok)
 - 05/10/2018: Added regex filter improvements from [@sbujam](https://github.com/sbujam)
 - 08/15/2017: Filtering default gateway and multicast ranges
 - 01/20/2017: Ignoring "Service unavailable" HTTP status code, removed IGNORE_CURL_ERRORS 
@@ -22,12 +24,6 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 3. apt-get install ipset
 4. Create the ipset blacklist and insert it into your iptables input filter (see below). After proper testing, make sure to persist it in your firewall script or similar or the rules will be lost after the next reboot.
 5. Auto-update the blacklist using a cron job
-
-## First run, create the list
-to generate the /etc/ipset-blacklist/ip-blacklist.restore
-```
-/usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
-```
 
 ## iptables filter rule
 ```
