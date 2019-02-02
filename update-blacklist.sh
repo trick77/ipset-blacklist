@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # usage update-blacklist.sh <configuration file>
 # eg: update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
@@ -19,6 +19,11 @@ fi
 if ! exists curl && exists egrep && exists grep && exists ipset && exists iptables && exists sed && exists sort && exists wc ; then
   echo >&2 "Error: searching PATH fails to find executables among: curl egrep grep ipset iptables sed sort wc"
   exit 1
+fi
+
+DO_OPTIMIZE_CIDR=no
+if exists iprange && [[ ${OPTIMIZE_CIDR:-yes} != no ]]; then
+  DO_OPTIMIZE_CIDR=yes
 fi
 
 if [[ ! -d $(dirname "$IP_BLACKLIST") || ! -d $(dirname "$IP_BLACKLIST_RESTORE") ]]; then
@@ -71,6 +76,17 @@ done
 
 # sort -nu does not work as expected
 sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+if [[ ${DO_OPTIMIZE_CIDR} == yes ]]; then
+  if [[ ${VERBOSE:-no} == yes ]]; then
+    echo -e "\\nAddresses before CIDR optimization: $(wc -l "$IP_BLACKLIST" | cut -d' ' -f1)"
+  fi
+  < "$IP_BLACKLIST" iprange --optimize - > "$IP_BLACKLIST_TMP" 2>/dev/null
+  if [[ ${VERBOSE:-no} == yes ]]; then
+    echo "Addresses after CIDR optimization:  $(wc -l "$IP_BLACKLIST_TMP" | cut -d' ' -f1)"
+  fi
+  cp "$IP_BLACKLIST_TMP" "$IP_BLACKLIST"
+fi
+
 rm -f "$IP_BLACKLIST_TMP"
 
 # family = inet for IPv4 only
@@ -93,5 +109,5 @@ ipset -file  "$IP_BLACKLIST_RESTORE" restore
 
 if [[ ${VERBOSE:-no} == yes ]]; then
   echo
-  echo "Number of blacklisted IP/networks found: $(wc -l "$IP_BLACKLIST" | cut -d' ' -f1)"
+  echo "Blacklisted addresses found: $(wc -l "$IP_BLACKLIST" | cut -d' ' -f1)"
 fi

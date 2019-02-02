@@ -6,6 +6,8 @@ A Bash shell script which uses ipset and iptables to ban a large number of IP ad
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## What's new
+- 10/17/2018: Added support for CIDR aggregation if iprange command is available
+- 10/17/2018: Merged Shellcheck PR from [@extremeshok](https://github.com/extremeshok)
 - 05/10/2018: Added regex filter improvements from [@sbujam](https://github.com/sbujam)
 - 08/15/2017: Filtering default gateway and multicast ranges
 - 01/20/2017: Ignoring "Service unavailable" HTTP status code, removed IGNORE_CURL_ERRORS 
