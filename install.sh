@@ -14,17 +14,20 @@ sudo mkdir -p /etc/ipset-blacklist
 sudo ln -s $(pwd)/ipset-blacklist.conf /etc/ipset-blacklist/ipset-blacklist.conf
 
 # register a system service
-sudo systemctl enable $(pwd)/baniplist.service
+sudo systemctl enable $(pwd)/badips.service
 
-# get a list of IPs
+# get a list of bad IPs. Script fills ipset with a list of bad ips and enables the banning firewall rule.
 sudo /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
 
 # Tell user how to control the service
 echo "
-# Control Ban IP list
-    service baniplist start|stop
-# Delete service:
-    systemctl disable baniplist
-# Put to CRONTAB to update list of IPs daily:
+# Banning bad IPs service is installed.
+# To start the 'badips' service, type:
+    systemctl start badips
+# to stop 'badips' until the next reboot, run
+    systemctl stop badips
+# To delete service, run:
+    systemctl disable badips
+# To update list of IPs daily, put this to CRONTAB
 33 23 * * *      root /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
 "
