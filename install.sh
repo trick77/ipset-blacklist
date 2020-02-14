@@ -20,8 +20,9 @@ sudo systemctl enable $(pwd)/badips.service
 sudo /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
 
 # Tell user how to control the service
-echo "
-# Banning bad IPs service is installed.
+GREEN='\033[0;32m'
+NOCOLOR='\033[0m'
+echo -e "$GREEN                    Service is installed.
 
 # To start the 'badips' service, type:
     systemctl start badips
@@ -39,5 +40,5 @@ echo "
     iptables -L INPUT -v --line-numbers
 
 # See the blacklisted IPs:
-    ipset list blacklist
+    ipset list blacklist $NOCOLOR
 "
