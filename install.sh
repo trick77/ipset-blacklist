@@ -33,9 +33,11 @@ echo "
     systemctl disable badips
 
 # To update list of IPs daily, put this to CRONTAB
-33 23 * * *      root /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+    33 23 * * *      root /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
 
 # Check how many packets got dropped using the blacklist:
-
     iptables -L INPUT -v --line-numbers
+
+# See the blacklisted IPs:
+    ipset list blacklist
 "
