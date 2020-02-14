@@ -22,12 +22,20 @@ sudo /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.co
 # Tell user how to control the service
 echo "
 # Banning bad IPs service is installed.
+
 # To start the 'badips' service, type:
     systemctl start badips
+
 # to stop 'badips' until the next reboot, run
     systemctl stop badips
+
 # To delete service, run:
     systemctl disable badips
+
 # To update list of IPs daily, put this to CRONTAB
 33 23 * * *      root /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+
+# Check how many packets got dropped using the blacklist:
+
+    iptables -L INPUT -v --line-numbers
 "
