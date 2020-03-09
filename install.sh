@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-# install ipset, if ipset is executive is not exist.
+# install ipset, if it is not installed
 if ! command -v "ipset" >/dev/null 2>&1; then
   sudo apt install ipset -y;
 fi
 
-# put a link to update program into path
+# link update script to the system path
 chmod +x update-blacklist.sh
 sudo ln -s $(pwd)/update-blacklist.sh /usr/local/sbin/update-blacklist.sh
 
-# put a link to config into /etc
+# link config file into /etc/ipset-blacklist
 sudo mkdir -p /etc/ipset-blacklist
 sudo ln -s $(pwd)/ipset-blacklist.conf /etc/ipset-blacklist/ipset-blacklist.conf
 
@@ -22,7 +22,7 @@ sudo /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.co
 # Tell user how to control the service
 GREEN='\033[0;32m'
 NOCOLOR='\033[0m'
-echo -e "$GREEN                    Service is installed.
+echo -e "$GREEN                    'badips' service has been installed.
 
 # To start the 'badips' service, type:
     systemctl start badips
@@ -40,5 +40,5 @@ echo -e "$GREEN                    Service is installed.
     iptables -L INPUT -v --line-numbers
 
 # See the blacklisted IPs:
-    ipset list blacklist $NOCOLOR
-"
+    ipset list blacklist
+$NOCOLOR"
