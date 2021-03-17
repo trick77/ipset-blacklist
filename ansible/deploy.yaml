@@ -1,0 +1,57 @@
+---
+- name: deploy ipset blacklist
+  hosts: publicserver
+  become: true
+  vars:
+    download_script_url: https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
+    ipsets_confdir: /etc/ipset-blacklist
+    ipsets_blacklist_name: blacklist
+    ip_blacklist_restore: ip-blacklist.restore
+    ip_blacklist: ip-blacklist.list
+    verbose: "no"
+    force: "yes"
+    blacklists:
+      - https://www.dshield.org/block.txt
+      - https://lists.blocklist.de/lists/ssh.txt
+    maxelements: 131072
+
+  tasks:
+
+    - name: Check install necessary packages (curl,ipset,iptables)
+      package:
+        name:
+          - curl
+          - ipset
+          - iptables
+
+    - name: Download update-blacklist.sh script
+      get_url:
+        url: "{{ download_script_url }}"
+        dest: /usr/local/sbin/update-blacklist.sh
+        mode: '0750'
+    - name: Make directory {{ ipsets_confdir }}
+      file:
+        path: "{{ ipsets_confdir }}"
+        state: directory
+
+    - name: Download update-blacklist.conf (for documentation)
+      get_url:
+        url: https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist.conf
+        dest: "{{ ipsets_confdir }}/ipset-blacklist.conf.orig"
+
+    - name: Generate update-blacklist.conf
+      ansible.builtin.template:
+        src: update-blacklist.conf.j2
+        dest: "{{ ipsets_confdir }}/ipset-blacklist.conf"
+
+    - name: Configure crontab
+      copy:
+        dest: /etc/cron.d/update-blacklist
+        content: |
+          PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+          MAILTO=root
+          @reboot root /usr/local/sbin/update-blacklist.sh {{ ipsets_confdir }}/ipset-blacklist.conf
+          33 23 * * * root /usr/local/sbin/update-blacklist.sh {{ ipsets_confdir }}/ipset-blacklist.conf
+
+    - name: Activate blocklist
+      command: /usr/local/sbin/update-blacklist.sh {{ ipsets_confdir }}/ipset-blacklist.conf
