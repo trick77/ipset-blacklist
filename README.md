@@ -42,7 +42,13 @@ ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
 iptables -I INPUT 1 -m set --match-set blacklist src -j DROP
 ```
 
-Make sure to run this snippet in a firewall script or just insert it to `/etc/rc.local`.
+Make sure to run this snippet in a firewall script, insert it to `/etc/rc.local` (rc.local is discontinued) or use a service file (see below).
+
+If you want to use a **systemd service** during system start-up, install and enable:
+
+1. `wget -O /etc/systemd/system/ipset-blacklist.service https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist.service`
+2. `systemctl enable ipset-blacklist`
+3. `systemctl start ipset-blacklist`
 
 ## Cron job
 
