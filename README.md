@@ -1,11 +1,11 @@
-ipset-blacklist
-===============
+# ipset-blacklist
 
 A Bash shell script which uses ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. ~~However, the limit of an ipset list is 2^16 entries.~~
 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## What's new
+
 - 10/17/2018: Added support for CIDR aggregation if iprange command is available
 - 10/17/2018: Merged Shellcheck PR from [@extremeshok](https://github.com/extremeshok)
 - 05/10/2018: Added regex filter improvements from [@sbujam](https://github.com/sbujam)
@@ -17,6 +17,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 - 10/22/2015: Changed the documentation, the script should be put in /usr/local/sbin not /usr/local/bin
 
 ## Quick start for Debian/Ubuntu based installations
+
 1. `wget -O /usr/local/sbin/update-blacklist.sh https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh`
 2. `chmod +x /usr/local/sbin/update-blacklist.sh`
 3. `mkdir -p /etc/ipset-blacklist ; wget -O /etc/ipset-blacklist/ipset-blacklist.conf https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist.conf`
@@ -27,7 +28,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 
 ## First run, create the list
 
-to generate the /etc/ipset-blacklist/ip-blacklist.restore
+to generate the `/etc/ipset-blacklist/ip-blacklist.restore`:
 
 ```sh
 /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
@@ -41,10 +42,11 @@ ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
 iptables -I INPUT 1 -m set --match-set blacklist src -j DROP
 ```
 
-Make sure to run this snippet in a firewall script or just insert it to /etc/rc.local.
+Make sure to run this snippet in a firewall script or just insert it to `/etc/rc.local`.
 
 ## Cron job
-In order to auto-update the blacklist, copy the following code into /etc/cron.d/update-blacklist. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
+
+In order to auto-update the blacklist, copy the following code into `/etc/cron.d/update-blacklist`. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
 
 ```sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
@@ -53,6 +55,7 @@ MAILTO=root
 ```
 
 ## Check for dropped packets
+
 Using iptables, you can check how many packets got dropped using the blacklist:
 
 ```sh
@@ -64,7 +67,8 @@ num   pkts bytes target            prot opt in  out source   destination
 3      912 69233 fail2ban-ssh-ddos tcp  --  any any anywhere anywhere     multiport dports ssh
 4      912 69233 fail2ban-ssh      tcp  --  any any anywhere anywhere     multiport dports ssh
 ```
-Since iptable rules are parsed sequentally, the ipset-blacklist is most effective if it's the **topmost** rule in iptable's INPUT chain. However, restarting fail2ban usually leads to a situation, where fail2ban inserts its rules above our blacklist drop rule. To prevent this from happening we have to tell fail2ban to insert its rules at the 2nd position. Since the iptables-multiport action is the default ban-action we have to add a file to /etc/fail2ban/action.d:
+
+Since iptable rules are parsed sequentally, the ipset-blacklist is most effective if it's the **topmost** rule in iptable's INPUT chain. However, restarting fail2ban usually leads to a situation, where fail2ban inserts its rules above our blacklist drop rule. To prevent this from happening we have to tell fail2ban to insert its rules at the 2nd position. Since the iptables-multiport action is the default ban-action we have to add a file to `/etc/fail2ban/action.d`:
 
 ```sh
 tee << EOF /etc/fail2ban/action.d/iptables-multiport.local
@@ -78,6 +82,7 @@ EOF
 (Please keep in in mind this is entirely optional, it just makes dropping blacklisted IP addresses most effective)
 
 ## Modify the blacklists you want to use
+
 Edit the BLACKLIST array in /etc/ipset-blacklist/ipset-blacklist.conf to add or remove blacklists, or use it to add your own blacklists.
 
 ```sh
@@ -102,7 +107,7 @@ MAXELEM=80000
 
 ### ipset v6.20.1: Error in line 2: Set cannot be created: set with the same name already exists
 
-If this happens after changing the MAXELEM parameter: ipset seems to be unable to recreate an exising list with a different size. You will have to solve this manually by deleting and inserting the blacklist in ipset and iptables. A reboot will help as well and may be easier. You may want to remove `/etc/ipset-blacklist/ip-blacklist.restore` too because it may still contain the old MAXELEM size.
+If this happens after changing the `MAXELEM` parameter: ipset seems to be unable to recreate an exising list with a different size. You will have to solve this manually by deleting and inserting the blacklist in ipset and iptables. A reboot will help as well and may be easier. You may want to remove `/etc/ipset-blacklist/ip-blacklist.restore` too because it may still contain the old MAXELEM size.
 
 ### ipset v6.12: No command specified: unknown argument -file
 
