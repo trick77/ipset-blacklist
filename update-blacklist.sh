@@ -26,6 +26,10 @@ if exists iprange && [[ ${OPTIMIZE_CIDR:-yes} != no ]]; then
   DO_OPTIMIZE_CIDR=yes
 fi
 
+if [ -f  /usr/share/netfilter-persistent/plugins.d/*ipset ]; then
+	IP_BLACKLIST_RESTORE=/etc/iptables/rules.ipset
+fi
+
 if [[ ! -d $(dirname "$IP_BLACKLIST") || ! -d $(dirname "$IP_BLACKLIST_RESTORE") ]]; then
   echo >&2 "Error: missing directory(s): $(dirname "$IP_BLACKLIST" "$IP_BLACKLIST_RESTORE"|sort -u)"
   exit 1
