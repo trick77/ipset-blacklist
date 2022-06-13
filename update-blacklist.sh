@@ -44,6 +44,46 @@ if ! ipset list -n|command grep -q "$IPSET_BLACKLIST_NAME"; then
   fi
 fi
 
+# drop rule if it isn't in a first position
+if [ `iptables -L FORWARD --line-num|command grep "match-set $IPSET_BLACKLIST_NAME" | cut -f1 -d" "` != "1" ]; then
+    if [[ ${FORCE:-no} != yes ]]; then
+  echo >&2 "Error: iptables need to drop ipset FORWARD rule, drop it using:"
+  echo >&2 "# iptables -D FORWARD -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
+  exit 1
+    fi
+    if ! iptables -D FORWARD -m set --match-set "$IPSET_BLACKLIST_NAME" src -j DROP; then
+  echo >&2 "Error: while dropping the --match-set ipset rule from iptables"
+  exit 1
+    fi
+fi
+
+# create the iptables binding if needed (or abort if does not exists and FORCE=no)
+if ! iptables -vL FORWARD|command grep -q "match-set $IPSET_BLACKLIST_NAME"; then
+    # we may also have assumed that FORWARD rule n°1 is about packets statistics (traffic monitoring)
+    if [[ ${FORCE:-no} != yes ]]; then
+	echo >&2 "Error: iptables does not have the needed ipset FORWARD rule, add it using:"
+	echo >&2 "# iptables -I FORWARD ${IPTABLES_IPSET_RULE_NUMBER:-1} -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
+	exit 1
+    fi
+    if ! iptables -I FORWARD "${IPTABLES_IPSET_RULE_NUMBER:-1}" -m set --match-set "$IPSET_BLACKLIST_NAME" src -j DROP; then
+	echo >&2 "Error: while adding the --match-set ipset rule to iptables"
+	exit 1
+    fi
+fi
+
+# drop rule if it isn't in a first position
+if [ `iptables -L INPUT --line-num|command grep "match-set $IPSET_BLACKLIST_NAME" | cut -f1 -d" "` != "1" ]; then
+    if [[ ${FORCE:-no} != yes ]]; then
+  echo >&2 "Error: iptables need to drop ipset INPUT rule, drop it using:"
+  echo >&2 "# iptables -D INPUT -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
+  exit 1
+    fi
+    if ! iptables -D INPUT -m set --match-set "$IPSET_BLACKLIST_NAME" src -j DROP; then
+  echo >&2 "Error: while dropping the --match-set ipset rule from iptables"
+  exit 1
+    fi
+fi
+
 # create the iptables binding if needed (or abort if does not exists and FORCE=no)
 if ! iptables -nvL INPUT|command grep -q "match-set $IPSET_BLACKLIST_NAME"; then
   # we may also have assumed that INPUT rule n°1 is about packets statistics (traffic monitoring)
@@ -57,6 +97,7 @@ if ! iptables -nvL INPUT|command grep -q "match-set $IPSET_BLACKLIST_NAME"; then
     exit 1
   fi
 fi
+
 
 IP_BLACKLIST_TMP=$(mktemp)
 for i in "${BLACKLISTS[@]}"
