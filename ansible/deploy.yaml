@@ -3,7 +3,7 @@
   hosts: publicserver
   become: true
   vars:
-    download_script_url: https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
+    download_script_url: https://raw.githubusercontent.com/kiekerjan/ipset-blacklist/master/update-blacklist.sh
     ipsets_confdir: /etc/ipset-blacklist
     ipsets_blacklist_name: blacklist
     ip_blacklist_restore: ip-blacklist.restore
@@ -14,6 +14,7 @@
       - https://www.dshield.org/block.txt
       - https://lists.blocklist.de/lists/ssh.txt
     maxelements: 131072
+    maxelements_v6: 131072
 
   tasks:
 
@@ -36,7 +37,7 @@
 
     - name: Download update-blacklist.conf (for documentation)
       get_url:
-        url: https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist.conf
+        url: https://raw.githubusercontent.com/kiekerjan/ipset-blacklist/master/ipset-blacklist.conf
         dest: "{{ ipsets_confdir }}/ipset-blacklist.conf.orig"
 
     - name: Generate update-blacklist.conf

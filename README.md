@@ -1,11 +1,13 @@
 # ipset-blacklist
 
-A Bash shell script which uses ipset and iptables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules. ~~However, the limit of an ipset list is 2^16 entries.~~
+A Bash shell script which uses ipset, iptables and ip6tables to ban a large number of IP addresses published in IP blacklists. ipset uses a hashtable to store/fetch IP addresses and thus the IP lookup is a lot (!) faster than thousands of sequentially parsed iptables ban rules.
+Thanks to @trick77 for original code and to https://github.com/leshniak/nft-blacklist for inspiration and code to add ipv6 support.
 
 The ipset command doesn't work under OpenVZ. It works fine on dedicated and fully virtualized servers like KVM though.
 
 ## What's new
 
+- 04/30/2023: Added ipv6 support
 - 10/17/2018: Added support for CIDR aggregation if iprange command is available
 - 10/17/2018: Merged Shellcheck PR from [@extremeshok](https://github.com/extremeshok)
 - 05/10/2018: Added regex filter improvements from [@sbujam](https://github.com/sbujam)
@@ -18,13 +20,14 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 
 ## Quick start for Debian/Ubuntu based installations
 
-1. `wget -O /usr/local/sbin/update-blacklist.sh https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh`
+1. `wget -O /usr/local/sbin/update-blacklist.sh https://raw.githubusercontent.com/kiekerjan/ipset-blacklist/master/update-blacklist.sh`
 2. `chmod +x /usr/local/sbin/update-blacklist.sh`
 3. `mkdir -p /etc/ipset-blacklist ; wget -O /etc/ipset-blacklist/ipset-blacklist.conf https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist.conf`
 4. Modify `ipset-blacklist.conf` according to your needs. Per default, the blacklisted IP addresses will be saved to `/etc/ipset-blacklist/ip-blacklist.restore`
 5. `apt-get install ipset`
-6. Create the ipset blacklist and insert it into your iptables input filter (see below). After proper testing, make sure to persist it in your firewall script or similar or the rules will be lost after the next reboot.
-7. Auto-update the blacklist using a cron job
+6. Get cidr-merger from https://github.com/zhanhb/cidr-merger/releases (probably optional)
+7. Create the ipset blacklist and insert it into your iptables input filter (see below). After proper testing, make sure to persist it in your firewall script or similar or the rules will be lost after the next reboot.
+8. Auto-update the blacklist using a cron job
 
 ## First run, create the list
 
@@ -39,7 +42,8 @@ to generate the `/etc/ipset-blacklist/ip-blacklist.restore`:
 ```sh
 # Enable blacklists
 ipset restore < /etc/ipset-blacklist/ip-blacklist.restore
-iptables -I INPUT 1 -m set --match-set blacklist src -j DROP
+iptables -I INPUT 1 -m set --match-set blacklist_v4 src -j DROP
+ip6tables -I INPUT 1 -m set --match-set blacklist_v6 src -j DROP
 ```
 
 Make sure to run this snippet in a firewall script or just insert it to `/etc/rc.local`.
