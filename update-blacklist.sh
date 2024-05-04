@@ -41,7 +41,7 @@ IPSET_BLACKLIST_NAME_V6="${IPSET_BLACKLIST_NAME}_v6"
 IPSET_TMP_BLACKLIST_NAME_V4="${IPSET_TMP_BLACKLIST_NAME}_v4"
 IPSET_TMP_BLACKLIST_NAME_V6="${IPSET_TMP_BLACKLIST_NAME}_v6"
 
-if ! exists curl && exists egrep && exists grep && exists ipset && exists iptables && exists ip6tables && exists sed && exists sort && exists wc ; then
+if ! (exists curl && exists egrep && exists grep && exists ipset && exists iptables && exists ip6tables && exists sed && exists sort && exists wc) ; then
   echo >&2 "Error: searching PATH fails to find executables among: curl egrep grep ipset iptables ip6tables sed sort wc"
   exit 1
 fi
