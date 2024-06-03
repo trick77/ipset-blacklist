@@ -20,12 +20,12 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 
 ## Quick start for Debian/Ubuntu based installations
 
-1. `wget -O /usr/local/sbin/update-blacklist.sh https://raw.githubusercontent.com/kiekerjan/ipset-blacklist/master/update-blacklist.sh`
-2. `chmod +x /usr/local/sbin/update-blacklist.sh`
-3. `mkdir -p /etc/ipset-blacklist ; wget -O /etc/ipset-blacklist/ipset-blacklist.conf https://raw.githubusercontent.com/trick77/ipset-blacklist/master/ipset-blacklist.conf`
+1. `wget -O /usr/local/bin/update-blacklist.sh https://raw.githubusercontent.com/kiekerjan/ipset-blacklist/master/update-blacklist.sh`
+2. `chmod +x /usr/local/bin/update-blacklist.sh`
+3. `mkdir -p /etc/ipset-blacklist ; wget -O /etc/ipset-blacklist/ipset-blacklist.conf https://raw.githubusercontent.com/kiekerjan/ipset-blacklist/master/ipset-blacklist.conf`
 4. Modify `ipset-blacklist.conf` according to your needs. Per default, the blacklisted IP addresses will be saved to `/etc/ipset-blacklist/ip-blacklist.restore`
 5. `apt-get install ipset`
-6. Get cidr-merger from https://github.com/zhanhb/cidr-merger/releases (probably optional)
+6. Get cidr-merger from https://github.com/zhanhb/cidr-merger/releases (optional)
 7. Create the ipset blacklist and insert it into your iptables input filter (see below). After proper testing, make sure to persist it in your firewall script or similar or the rules will be lost after the next reboot.
 8. Auto-update the blacklist using a cron job
 
@@ -34,7 +34,7 @@ The ipset command doesn't work under OpenVZ. It works fine on dedicated and full
 to generate the `/etc/ipset-blacklist/ip-blacklist.restore`:
 
 ```sh
-/usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+/usr/local/bin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
 ```
 
 ## iptables filter rule
@@ -46,16 +46,16 @@ iptables -I INPUT 1 -m set --match-set blacklist_v4 src -j DROP
 ip6tables -I INPUT 1 -m set --match-set blacklist_v6 src -j DROP
 ```
 
-Make sure to run this snippet in a firewall script or just insert it to `/etc/rc.local`.
+Make sure to run this snippet in a firewall script or just insert it to `/etc/rc.local` or a cron job that runs at boot.
 
 ## Cron job
 
 In order to auto-update the blacklist, copy the following code into `/etc/cron.d/update-blacklist`. Don't update the list too often or some blacklist providers will ban your IP address. Once a day should be OK though.
 
 ```sh
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+PATH=/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 MAILTO=root
-33 23 * * *      root /usr/local/sbin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+33 23 * * *      root /usr/local/bin/update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
 ```
 
 ## Check for dropped packets
