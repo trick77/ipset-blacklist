@@ -110,9 +110,12 @@ teardown() {
 @test "dry-run: IP list does not contain private ranges" {
   "${SCRIPT_PATH}" --dry-run "${TEST_CONFIG}"
 
-  ! grep -qE "^10\." "${TEST_OUTPUT_DIR}/ip-blacklist.list"
-  ! grep -qE "^192\.168\." "${TEST_OUTPUT_DIR}/ip-blacklist.list"
-  ! grep -qE "^172\.(1[6-9]|2[0-9]|3[0-1])\." "${TEST_OUTPUT_DIR}/ip-blacklist.list"
+  run grep -qE "^10\." "${TEST_OUTPUT_DIR}/ip-blacklist.list"
+  [ "$status" -ne 0 ]
+  run grep -qE "^192\.168\." "${TEST_OUTPUT_DIR}/ip-blacklist.list"
+  [ "$status" -ne 0 ]
+  run grep -qE "^172\.(1[6-9]|2[0-9]|3[0-1])\." "${TEST_OUTPUT_DIR}/ip-blacklist.list"
+  [ "$status" -ne 0 ]
 }
 
 @test "dry-run: reports IP counts" {

@@ -79,7 +79,7 @@ mock_curl() {
       -o) output_file="$2"; shift 2 ;;
       -s|-L|-A|--connect-timeout|--max-time) shift; [[ "$1" != -* ]] && shift ;;
       -w) shift; shift ;;  # Skip -w format
-      http*|https*|file*) url="$1"; shift ;;
+      https://*|http://*|file://*) url="$1"; shift ;;
       *) shift ;;
     esac
   done
@@ -181,12 +181,12 @@ count_lines() {
 # Assert line count
 assert_line_count() {
   local file="$1"
-  local expected="$2"
+  local expected_count="$2"
   local actual
   actual=$(count_lines "$file")
 
-  if [[ "$actual" -ne "$expected" ]]; then
-    echo "Expected $expected lines, got $actual"
+  if [[ "$actual" -ne "$expected_count" ]]; then
+    echo "Expected $expected_count lines, got $actual"
     echo "File contents:"
     cat "$file"
     return 1
