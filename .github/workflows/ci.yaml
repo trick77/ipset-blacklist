@@ -38,7 +38,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y iprange
 
       - name: Create config directory
-        run: sudo mkdir -p /etc/nftables-blacklist
+        run: sudo mkdir -p /etc/nftables-blacklist && sudo chmod 777 /etc/nftables-blacklist
 
       - name: Run dry-run test
         run: ./update-blacklist.sh --dry-run nftables-blacklist.conf
