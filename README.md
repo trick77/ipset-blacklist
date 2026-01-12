@@ -12,21 +12,20 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 - **Auto-merge**: nftables automatically consolidates overlapping ranges
 - **Atomic updates**: Zero-gap protection during updates
 - **O(1) lookups**: Hash table based for maximum performance
-- **No MAXELEM config**: nftables sets grow dynamically (unlike ipset's fixed limit)
 
 ## Requirements
 
 - Debian 10+ / Ubuntu 20.04+ (or any Linux with nftables)
 - nftables (`apt install nftables`)
+- iprange (`apt install iprange`) - for CIDR optimization and whitelist
 - curl, grep, sed, sort, wc (standard utilities)
-- Optional: iprange (for CIDR optimization of IPv4)
 
 ## Quick Start (Debian/Ubuntu)
 
-1. **Install nftables:**
+1. **Install dependencies:**
    ```bash
    apt update
-   apt install nftables curl
+   apt install nftables curl iprange
    systemctl enable nftables
    systemctl start nftables
    ```
@@ -61,10 +60,10 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
    nft list table inet blacklist
 
    # Show IPv4 set contents
-   nft list set inet blacklist blocklist4
+   nft list set inet blacklist blacklist4
 
    # Show IPv6 set contents
-   nft list set inet blacklist blocklist6
+   nft list set inet blacklist blacklist6
 
    # Check drop counters
    nft list chain inet blacklist input
@@ -137,8 +136,8 @@ Example output:
 ```
 chain input {
     type filter hook input priority -200; policy accept;
-    ip saddr @blocklist4 counter packets 1523 bytes 91380 drop comment "IPv4 blacklist"
-    ip6 saddr @blocklist6 counter packets 42 bytes 3360 drop comment "IPv6 blacklist"
+    ip saddr @blacklist4 counter packets 1523 bytes 91380 drop comment "IPv4 blacklist"
+    ip6 saddr @blacklist6 counter packets 42 bytes 3360 drop comment "IPv6 blacklist"
 }
 ```
 
@@ -152,7 +151,7 @@ Edit `nftables-blacklist.conf`. Key settings:
 | `ENABLE_IPV6` | yes | Process IPv6 addresses |
 | `FORCE` | yes | Auto-create nftables structure if missing |
 | `VERBOSE` | yes | Show progress output (set to "no" for cron) |
-| `OPTIMIZE_CIDR` | yes | Aggregate IPv4 CIDR ranges (requires iprange) |
+| `AUTO_WHITELIST` | no | Auto-detect and whitelist server's own IPs (recommended) |
 | `NFT_CHAIN_PRIORITY` | -200 | Lower = checked earlier in firewall |
 | `CURL_CONNECT_TIMEOUT` | 10 | Connection timeout in seconds |
 | `CURL_MAX_TIME` | 30 | Maximum time per download |
@@ -177,6 +176,39 @@ BLACKLISTS=(
 
 For more blacklist sources, check [FireHOL's blocklist-ipsets](https://github.com/firehol/blocklist-ipsets).
 
+## Whitelist (Prevent Self-Blocking)
+
+Sometimes your server's IP may appear in a public blacklist. To prevent blocking yourself:
+
+### Manual Whitelist
+
+Edit the `WHITELIST` array in the config file:
+
+```bash
+WHITELIST=(
+    "203.0.113.10"       # Your server IP
+    "203.0.113.0/24"     # Your network range
+    "2001:db8::1"        # IPv6 address
+)
+```
+
+The whitelist uses proper CIDR subtraction for IPv4, so whitelisting `10.0.0.0/8` will correctly exclude that entire range even if the blacklist contains individual IPs like `10.1.2.3`.
+
+**Note:** IPv6 whitelist uses exact matching only (iprange doesn't support IPv6 CIDR operations).
+
+### Auto-Detect Server IPs
+
+Enable automatic detection of your server's IPs (recommended):
+
+```bash
+AUTO_WHITELIST=yes
+```
+
+This will:
+- Detect all local interface IPs
+- Query external services for public IPs (ipv4.o11.net / ipv6.o11.net with fallback to icanhazip.com)
+- Uses 5-second timeout for external lookups
+
 ## Dry Run Mode
 
 Test without actually applying rules:
@@ -199,18 +231,18 @@ Set `FORCE=yes` in config (default), or create manually:
 
 ```bash
 nft add table inet blacklist
-nft add set inet blacklist blocklist4 '{ type ipv4_addr; flags interval; auto-merge; }'
-nft add set inet blacklist blocklist6 '{ type ipv6_addr; flags interval; auto-merge; }'
+nft add set inet blacklist blacklist4 '{ type ipv4_addr; flags interval; auto-merge; }'
+nft add set inet blacklist blacklist6 '{ type ipv6_addr; flags interval; auto-merge; }'
 nft add chain inet blacklist input '{ type filter hook input priority -200; policy accept; }'
-nft add rule inet blacklist input ip saddr @blocklist4 counter drop
-nft add rule inet blacklist input ip6 saddr @blocklist6 counter drop
+nft add rule inet blacklist input ip saddr @blacklist4 counter drop
+nft add rule inet blacklist input ip6 saddr @blacklist6 counter drop
 ```
 
 ### Check if an IP is blocked
 
 ```bash
-nft get element inet blacklist blocklist4 { 1.2.3.4 }
-nft get element inet blacklist blocklist6 { 2001:db8::1 }
+nft get element inet blacklist blacklist4 { 1.2.3.4 }
+nft get element inet blacklist blacklist6 { 2001:db8::1 }
 ```
 
 ### Integration with existing firewall
