@@ -202,6 +202,93 @@ filter_private_ipv6() {
 }
 
 #=============================================================================
+# WHITELIST FUNCTIONS
+#=============================================================================
+
+# Get server IPs for auto-whitelisting
+# Detects local interface IPs and optionally public IPs via external services
+# Output: IPs to stdout, one per line
+get_server_ips() {
+    local whitelist_timeout=5
+
+    # Get local interface IPs
+    if exists ip; then
+        # IPv4 from interfaces
+        ip -4 addr show 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' || true
+        # IPv6 from interfaces
+        ip -6 addr show 2>/dev/null | grep -oE 'inet6 [0-9a-fA-F:]+' | awk '{print $2}' || true
+    elif exists hostname; then
+        # Fallback: hostname -I (space-separated list of all IPs)
+        hostname -I 2>/dev/null | tr ' ' '\n' | grep -v '^$' || true
+    fi
+
+    # Get public IPs via external services (with short timeout)
+    # Primary: o11.net services
+    # Fallback: icanhazip.com
+    local public_v4="" public_v6=""
+
+    # Try IPv4 - primary service
+    public_v4=$(curl -4 -s --connect-timeout "$whitelist_timeout" --max-time "$whitelist_timeout" \
+        "https://ipv4.o11.net" 2>/dev/null | grep -oE '^[0-9.]+$' || true)
+
+    # IPv4 fallback if primary failed
+    if [[ -z "$public_v4" ]]; then
+        public_v4=$(curl -4 -s --connect-timeout "$whitelist_timeout" --max-time "$whitelist_timeout" \
+            "https://ipv4.icanhazip.com" 2>/dev/null | grep -oE '^[0-9.]+$' || true)
+    fi
+
+    [[ -n "$public_v4" ]] && echo "$public_v4"
+
+    # Try IPv6 - primary service
+    public_v6=$(curl -6 -s --connect-timeout "$whitelist_timeout" --max-time "$whitelist_timeout" \
+        "https://ipv6.o11.net" 2>/dev/null | grep -oiE '^[0-9a-f:]+$' || true)
+
+    # IPv6 fallback if primary failed
+    if [[ -z "$public_v6" ]]; then
+        public_v6=$(curl -6 -s --connect-timeout "$whitelist_timeout" --max-time "$whitelist_timeout" \
+            "https://ipv6.icanhazip.com" 2>/dev/null | grep -oiE '^[0-9a-f:]+$' || true)
+    fi
+
+    [[ -n "$public_v6" ]] && echo "$public_v6"
+}
+
+# Apply whitelist to filter out protected IPs from blacklist
+# For IPv4: uses iprange --except for proper CIDR subtraction
+# For IPv6: uses exact match filtering (no CIDR support)
+# Arguments:
+#   $1 - input blacklist file
+#   $2 - whitelist file
+#   $3 - output filtered file
+#   $4 - IP version: "4" or "6"
+apply_whitelist() {
+    local blacklist_file="$1"
+    local whitelist_file="$2"
+    local output_file="$3"
+    local ip_version="$4"
+
+    # If no whitelist entries, just copy input to output
+    if [[ ! -s "$whitelist_file" ]]; then
+        cp "$blacklist_file" "$output_file"
+        return 0
+    fi
+
+    if [[ "$ip_version" == "4" ]]; then
+        # IPv4: use iprange for proper CIDR subtraction
+        if ! iprange "$blacklist_file" --except "$whitelist_file" > "$output_file" 2>/dev/null; then
+            log_warn "iprange whitelist filtering failed, copying original"
+            cp "$blacklist_file" "$output_file"
+        fi
+    else
+        # IPv6: exact match filtering only (iprange doesn't support IPv6)
+        # This means 2001:db8::1 in whitelist won't filter 2001:db8::/32 in blacklist
+        grep -v -F -x -f "$whitelist_file" "$blacklist_file" > "$output_file" 2>/dev/null || cp "$blacklist_file" "$output_file"
+        log_verbose "  Note: IPv6 whitelist uses exact matching only (no CIDR subtraction)"
+    fi
+
+    return 0
+}
+
+#=============================================================================
 # NFTABLES MANAGEMENT FUNCTIONS
 #=============================================================================
 
@@ -502,8 +589,8 @@ main() {
 
     # Apply defaults for optional settings
     : "${NFT_TABLE_NAME:=blacklist}"
-    : "${NFT_SET_NAME_V4:=blocklist4}"
-    : "${NFT_SET_NAME_V6:=blocklist6}"
+    : "${NFT_SET_NAME_V4:=blacklist4}"
+    : "${NFT_SET_NAME_V6:=blacklist6}"
     : "${NFT_CHAIN_NAME:=input}"
     : "${NFT_CHAIN_PRIORITY:=-200}"
     : "${ENABLE_IPV4:=yes}"
@@ -513,10 +600,10 @@ main() {
     : "${CURL_MAX_TIME:=30}"
 
     # Validate required commands
-    local required_cmds=(curl grep sed sort wc)
+    local required_cmds=(curl grep sed sort wc iprange)
     for cmd in "${required_cmds[@]}"; do
         if ! exists "$cmd"; then
-            die "Required command not found: $cmd"
+            die "Required command not found: $cmd (install with: apt install $cmd)"
         fi
     done
 
@@ -536,14 +623,6 @@ main() {
                 log_warn "nftables version $nft_version detected. Version 0.9.0+ recommended for full feature support."
             fi
         fi
-    fi
-
-    # Check for optional iprange (CIDR optimization)
-    local do_optimize_cidr=no
-    if exists iprange; then
-        do_optimize_cidr=yes
-    else
-        log_verbose "Note: 'iprange' not found. Install it for CIDR optimization: apt install iprange"
     fi
 
     # Validate output directories exist
@@ -604,8 +683,8 @@ main() {
             # Filter private ranges and deduplicate
             filter_private_ipv4 "$ipv4_raw" | sort -u > "$ipv4_clean"
 
-            # Optional CIDR optimization
-            if [[ "$do_optimize_cidr" == "yes" ]] && [[ -s "$ipv4_clean" ]]; then
+            # CIDR optimization (aggregates overlapping ranges)
+            if [[ -s "$ipv4_clean" ]]; then
                 local before_count after_count
                 before_count=$(wc -l < "$ipv4_clean" | tr -d ' ')
 
@@ -628,6 +707,80 @@ main() {
         if [[ -s "$ipv6_raw" ]]; then
             # Filter private ranges and deduplicate
             filter_private_ipv6 "$ipv6_raw" | sort -u > "$ipv6_clean"
+        fi
+    fi
+
+    # Apply whitelist filtering (if configured)
+    local whitelist_v4 whitelist_v6
+    whitelist_v4=$(make_temp)
+    whitelist_v6=$(make_temp)
+    local has_whitelist=no
+
+    # Collect manual whitelist entries
+    if [[ -n "${WHITELIST[*]:-}" ]]; then
+        for entry in "${WHITELIST[@]}"; do
+            [[ -z "$entry" ]] && continue
+            # Determine if IPv4 or IPv6 based on presence of colon
+            if [[ "$entry" == *:* ]]; then
+                echo "$entry" >> "$whitelist_v6"
+            else
+                echo "$entry" >> "$whitelist_v4"
+            fi
+        done
+        has_whitelist=yes
+    fi
+
+    # Auto-detect server IPs if enabled
+    if [[ "${AUTO_WHITELIST:-no}" == "yes" ]]; then
+        log_verbose "Auto-detecting server IPs for whitelist..."
+        local auto_ips
+        auto_ips=$(make_temp)
+        get_server_ips > "$auto_ips"
+
+        if [[ -s "$auto_ips" ]]; then
+            while IFS= read -r ip || [[ -n "$ip" ]]; do
+                [[ -z "$ip" ]] && continue
+                if [[ "$ip" == *:* ]]; then
+                    echo "$ip" >> "$whitelist_v6"
+                else
+                    echo "$ip" >> "$whitelist_v4"
+                fi
+                log_verbose "  Whitelisted: $ip"
+            done < "$auto_ips"
+            has_whitelist=yes
+        fi
+    fi
+
+    # Apply whitelist if we have entries
+    if [[ "$has_whitelist" == "yes" ]]; then
+        # Apply IPv4 whitelist
+        if [[ -s "$ipv4_clean" ]] && [[ -s "$whitelist_v4" ]]; then
+            log_verbose "Applying IPv4 whitelist..."
+            local ipv4_filtered
+            ipv4_filtered=$(make_temp)
+            local before_wl after_wl
+            before_wl=$(wc -l < "$ipv4_clean" | tr -d ' ')
+
+            if apply_whitelist "$ipv4_clean" "$whitelist_v4" "$ipv4_filtered" "4"; then
+                mv "$ipv4_filtered" "$ipv4_clean"
+                after_wl=$(wc -l < "$ipv4_clean" | tr -d ' ')
+                log_verbose "  Whitelist applied: $before_wl -> $after_wl entries"
+            fi
+        fi
+
+        # Apply IPv6 whitelist
+        if [[ -s "$ipv6_clean" ]] && [[ -s "$whitelist_v6" ]]; then
+            log_verbose "Applying IPv6 whitelist..."
+            local ipv6_filtered
+            ipv6_filtered=$(make_temp)
+            local before_wl after_wl
+            before_wl=$(wc -l < "$ipv6_clean" | tr -d ' ')
+
+            if apply_whitelist "$ipv6_clean" "$whitelist_v6" "$ipv6_filtered" "6"; then
+                mv "$ipv6_filtered" "$ipv6_clean"
+                after_wl=$(wc -l < "$ipv6_clean" | tr -d ' ')
+                log_verbose "  Whitelist applied: $before_wl -> $after_wl entries"
+            fi
         fi
     fi
 
