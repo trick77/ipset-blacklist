@@ -94,7 +94,7 @@ make_temp() {
 # Cleanup temporary files
 cleanup() {
   for f in "${TEMP_FILES[@]:-}"; do
-  [[ -f "$f" ]] && rm -f "$f"
+    [[ -f "$f" ]] && rm -f "$f" || true
   done
 }
 
