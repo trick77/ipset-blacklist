@@ -21,7 +21,6 @@ set -euo pipefail
 #=============================================================================
 
 DRY_RUN=no
-CRON_MODE=no
 CONFIG_FILE=""
 
 # Colors (disabled in cron mode or non-terminal)
@@ -574,7 +573,6 @@ main() {
         shift
         ;;
       --cron)
-        CRON_MODE=yes
         VERBOSE=no
         C_RED='' C_GREEN='' C_YELLOW='' C_BLUE='' C_BOLD='' C_RESET=''
         shift
