@@ -6,6 +6,7 @@
 #
 # Options:
 #   --dry-run  Download and process IPs, generate script, but don't apply
+#   --cron     Minimal output, no colors (for cron jobs)
 #   --help     Show this help message
 #
 # Example:
@@ -20,7 +21,20 @@ set -euo pipefail
 #=============================================================================
 
 DRY_RUN=no
+CRON_MODE=no
 CONFIG_FILE=""
+
+# Colors (disabled in cron mode or non-terminal)
+if [[ -t 1 ]]; then
+  C_RED='\033[0;31m'
+  C_GREEN='\033[0;32m'
+  C_YELLOW='\033[0;33m'
+  C_BLUE='\033[0;34m'
+  C_BOLD='\033[1m'
+  C_RESET='\033[0m'
+else
+  C_RED='' C_GREEN='' C_YELLOW='' C_BLUE='' C_BOLD='' C_RESET=''
+fi
 
 # Temporary files (set in main, cleaned up on exit)
 declare -a TEMP_FILES=()
@@ -36,17 +50,27 @@ exists() {
 
 # Print message if VERBOSE=yes
 log_verbose() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$@"
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "$@"
+}
+
+# Print success message
+log_success() {
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "${C_GREEN}$*${C_RESET}"
+}
+
+# Print info message
+log_info() {
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "${C_BLUE}$*${C_RESET}"
 }
 
 # Print error to stderr
 log_error() {
-  echo >&2 "Error: $*"
+  echo -e >&2 "${C_RED}Error: $*${C_RESET}"
 }
 
 # Print warning to stderr
 log_warn() {
-  echo >&2 "Warning: $*"
+  echo -e >&2 "${C_YELLOW}Warning: $*${C_RESET}"
 }
 
 # Fatal error - print message and exit
@@ -84,7 +108,8 @@ Usage: update-blacklist.sh [OPTIONS] <configuration file>
 
 Options:
   --dry-run  Download and process IPs, generate nftables script,
-         but don't actually apply rules. Useful for testing.
+             but don't actually apply rules. Useful for testing.
+  --cron     Minimal output, no colors. Use this for cron jobs.
   --help     Show this help message
 
 Examples:
@@ -439,14 +464,7 @@ apply_nft_script() {
 
   if [[ "$DRY_RUN" == "yes" ]]; then
     log_verbose ""
-    log_verbose "[DRY-RUN] Would apply nftables script:"
-    log_verbose "  nft -f $script_file"
-    log_verbose ""
-    log_verbose "Script preview (first 50 lines):"
-    head -50 "$script_file"
-    if [[ $(wc -l < "$script_file") -gt 50 ]]; then
-      log_verbose "  ... ($(wc -l < "$script_file") total lines)"
-    fi
+    log_verbose "[DRY-RUN] Would apply: nft -f $script_file"
     return 0
   fi
 
@@ -553,6 +571,12 @@ main() {
     case "$1" in
       --dry-run)
         DRY_RUN=yes
+        shift
+        ;;
+      --cron)
+        CRON_MODE=yes
+        VERBOSE=no
+        C_RED='' C_GREEN='' C_YELLOW='' C_BLUE='' C_BOLD='' C_RESET=''
         shift
         ;;
       --help|-h)
@@ -670,7 +694,7 @@ main() {
   ipv4_clean=$(make_temp)
   ipv6_clean=$(make_temp)
 
-  log_verbose "Downloading blacklists..."
+  log_info "Downloading blacklists..."
 
   # Download and extract all IPs
   download_all_blacklists "$ipv4_raw" "$ipv6_raw"
@@ -815,21 +839,16 @@ main() {
 
   if [[ "${VERBOSE:-yes}" == "yes" ]]; then
     echo ""
-    echo "Blacklist update complete:"
-    echo "  IPv4 entries: $v4_count"
-    echo "  IPv6 entries: $v6_count"
-    echo "  Total:    $((v4_count + v6_count))"
-    echo ""
-    echo "Files updated:"
-    echo "  ${IP_BLACKLIST}.v4"
-    echo "  ${IP_BLACKLIST}.v6"
-    echo "  ${NFT_BLACKLIST_SCRIPT}"
+    log_success "Blacklist update complete"
+    echo -e "  IPv4: ${C_BOLD}$v4_count${C_RESET}  IPv6: ${C_BOLD}$v6_count${C_RESET}  Total: ${C_BOLD}$((v4_count + v6_count))${C_RESET}"
 
     if [[ "$DRY_RUN" == "yes" ]]; then
       echo ""
-      echo "[DRY-RUN] No changes were applied to nftables"
+      log_info "[DRY-RUN] No changes were applied to nftables"
     fi
   fi
+
+  return 0
 }
 
 # Entry point
