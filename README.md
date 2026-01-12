@@ -1,4 +1,6 @@
-# nftables-blacklist
+# nftables-blacklist (formerly ipset-blacklist)
+
+> **Freshly defrosted from the [GitHub Arctic Code Vault](https://archiveprogram.github.com/arctic-vault/)** and upgraded from iptables to nftables. Yes, the nftables syntax is... an acquired taste. But I finally bow to the netfilter overlords.
 
 A Bash script that uses nftables to block large numbers of malicious IP addresses from public blacklists. Supports both IPv4 and IPv6 with CIDR notation.
 
@@ -6,7 +8,7 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 
 ## Features
 
-- **Modern nftables**: Uses nftables instead of deprecated iptables/ipset
+- **nftables**: Uses nftables instead of deprecated iptables/ipset
 - **IPv4 + IPv6**: Full dual-stack support
 - **CIDR support**: Efficiently blocks entire ranges with interval sets
 - **Auto-merge**: nftables automatically consolidates overlapping ranges
