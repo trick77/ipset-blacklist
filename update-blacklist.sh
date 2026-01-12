@@ -851,5 +851,6 @@ main() {
 }
 
 # Entry point
-main "$@"
+main "$@" || exit 1
+set +e
 exit 0
