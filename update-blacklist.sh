@@ -1,113 +1,683 @@
 #!/usr/bin/env bash
 #
-# usage update-blacklist.sh <configuration file>
-# eg: update-blacklist.sh /etc/ipset-blacklist/ipset-blacklist.conf
+# nftables-blacklist - Block malicious IPs using nftables sets
 #
-function exists() { command -v "$1" >/dev/null 2>&1 ; }
+# Usage: update-blacklist.sh [OPTIONS] <configuration file>
+#
+# Options:
+#   --dry-run    Download and process IPs, generate script, but don't apply
+#   --help       Show this help message
+#
+# Example:
+#   update-blacklist.sh /etc/nftables-blacklist/nftables-blacklist.conf
+#   update-blacklist.sh --dry-run /etc/nftables-blacklist/nftables-blacklist.conf
+#
 
-if [[ -z "$1" ]]; then
-  echo "Error: please specify a configuration file, e.g. $0 /etc/ipset-blacklist/ipset-blacklist.conf"
-  exit 1
-fi
+set -euo pipefail
 
-# shellcheck source=ipset-blacklist.conf
-if ! source "$1"; then
-  echo "Error: can't load configuration file $1"
-  exit 1
-fi
+#=============================================================================
+# GLOBAL VARIABLES
+#=============================================================================
 
-if ! exists curl && exists egrep && exists grep && exists ipset && exists iptables && exists sed && exists sort && exists wc ; then
-  echo >&2 "Error: searching PATH fails to find executables among: curl egrep grep ipset iptables sed sort wc"
-  exit 1
-fi
+DRY_RUN=no
+CONFIG_FILE=""
 
-DO_OPTIMIZE_CIDR=no
-if exists iprange && [[ ${OPTIMIZE_CIDR:-yes} != no ]]; then
-  DO_OPTIMIZE_CIDR=yes
-fi
+# Temporary files (set in main, cleaned up on exit)
+declare -a TEMP_FILES=()
 
-if [[ ! -d $(dirname "$IP_BLACKLIST") || ! -d $(dirname "$IP_BLACKLIST_RESTORE") ]]; then
-  echo >&2 "Error: missing directory(s): $(dirname "$IP_BLACKLIST" "$IP_BLACKLIST_RESTORE"|sort -u)"
-  exit 1
-fi
+#=============================================================================
+# UTILITY FUNCTIONS
+#=============================================================================
 
-# create the ipset if needed (or abort if does not exists and FORCE=no)
-if ! ipset list -n|command grep -q "$IPSET_BLACKLIST_NAME"; then
-  if [[ ${FORCE:-no} != yes ]]; then
-    echo >&2 "Error: ipset does not exist yet, add it using:"
-    echo >&2 "# ipset create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}"
+# Check if command exists in PATH
+exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Print message if VERBOSE=yes
+log_verbose() {
+    [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$@"
+}
+
+# Print error to stderr
+log_error() {
+    echo >&2 "Error: $*"
+}
+
+# Print warning to stderr
+log_warn() {
+    echo >&2 "Warning: $*"
+}
+
+# Fatal error - print message and exit
+die() {
+    log_error "$@"
     exit 1
-  fi
-  if ! ipset create "$IPSET_BLACKLIST_NAME" -exist hash:net family inet hashsize "${HASHSIZE:-16384}" maxelem "${MAXELEM:-65536}"; then
-    echo >&2 "Error: while creating the initial ipset"
-    exit 1
-  fi
-fi
+}
 
-# create the iptables binding if needed (or abort if does not exists and FORCE=no)
-if ! iptables -nvL INPUT|command grep -q "match-set $IPSET_BLACKLIST_NAME"; then
-  # we may also have assumed that INPUT rule n°1 is about packets statistics (traffic monitoring)
-  if [[ ${FORCE:-no} != yes ]]; then
-    echo >&2 "Error: iptables does not have the needed ipset INPUT rule, add it using:"
-    echo >&2 "# iptables -I INPUT ${IPTABLES_IPSET_RULE_NUMBER:-1} -m set --match-set $IPSET_BLACKLIST_NAME src -j DROP"
-    exit 1
-  fi
-  if ! iptables -I INPUT "${IPTABLES_IPSET_RULE_NUMBER:-1}" -m set --match-set "$IPSET_BLACKLIST_NAME" src -j DROP; then
-    echo >&2 "Error: while adding the --match-set ipset rule to iptables"
-    exit 1
-  fi
-fi
+# Show progress dot
+show_progress() {
+    [[ "${VERBOSE:-yes}" == "yes" ]] && echo -n "."
+}
 
-IP_BLACKLIST_TMP=$(mktemp)
-for i in "${BLACKLISTS[@]}"
-do
-  IP_TMP=$(mktemp)
-  (( HTTP_RC=$(curl -L -A "blacklist-update/script/github" --connect-timeout 10 --max-time 10 -o "$IP_TMP" -s -w "%{http_code}" "$i") ))
-  if (( HTTP_RC == 200 || HTTP_RC == 302 || HTTP_RC == 0 )); then # "0" because file:/// returns 000
-    command grep -Po '^(?:\d{1,3}\.){3}\d{1,3}(?:/\d{1,2})?' "$IP_TMP" | sed -r 's/^0*([0-9]+)\.0*([0-9]+)\.0*([0-9]+)\.0*([0-9]+)$/\1.\2.\3.\4/' >> "$IP_BLACKLIST_TMP"
-    [[ ${VERBOSE:-yes} == yes ]] && echo -n "."
-  elif (( HTTP_RC == 503 )); then
-    echo -e "\\nUnavailable (${HTTP_RC}): $i"
-  else
-    echo >&2 -e "\\nWarning: curl returned HTTP response code $HTTP_RC for URL $i"
-  fi
-  rm -f "$IP_TMP"
-done
+# Create temp file and register for cleanup
+make_temp() {
+    local tmp
+    tmp=$(mktemp)
+    TEMP_FILES+=("$tmp")
+    echo "$tmp"
+}
 
-# sort -nu does not work as expected
-sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
-if [[ ${DO_OPTIMIZE_CIDR} == yes ]]; then
-  if [[ ${VERBOSE:-no} == yes ]]; then
-    echo -e "\\nAddresses before CIDR optimization: $(wc -l "$IP_BLACKLIST" | cut -d' ' -f1)"
-  fi
-  < "$IP_BLACKLIST" iprange --optimize - > "$IP_BLACKLIST_TMP" 2>/dev/null
-  if [[ ${VERBOSE:-no} == yes ]]; then
-    echo "Addresses after CIDR optimization:  $(wc -l "$IP_BLACKLIST_TMP" | cut -d' ' -f1)"
-  fi
-  cp "$IP_BLACKLIST_TMP" "$IP_BLACKLIST"
-fi
+# Cleanup temporary files
+cleanup() {
+    for f in "${TEMP_FILES[@]:-}"; do
+        [[ -f "$f" ]] && rm -f "$f"
+    done
+}
 
-rm -f "$IP_BLACKLIST_TMP"
+# Show usage information
+show_help() {
+    cat <<'EOF'
+nftables-blacklist - Block malicious IPs using nftables sets
 
-# family = inet for IPv4 only
-cat >| "$IP_BLACKLIST_RESTORE" <<EOF
-create $IPSET_TMP_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}
-create $IPSET_BLACKLIST_NAME -exist hash:net family inet hashsize ${HASHSIZE:-16384} maxelem ${MAXELEM:-65536}
+Usage: update-blacklist.sh [OPTIONS] <configuration file>
+
+Options:
+  --dry-run    Download and process IPs, generate nftables script,
+               but don't actually apply rules. Useful for testing.
+  --help       Show this help message
+
+Examples:
+  # Normal run
+  update-blacklist.sh /etc/nftables-blacklist/nftables-blacklist.conf
+
+  # Dry run (test without applying)
+  update-blacklist.sh --dry-run /etc/nftables-blacklist/nftables-blacklist.conf
+
+Configuration:
+  See nftables-blacklist.conf for all available options.
+
+For more information: https://github.com/trick77/ipset-blacklist
+EOF
+}
+
+#=============================================================================
+# IP EXTRACTION FUNCTIONS
+#=============================================================================
+
+# Extract IPv4 addresses from input file
+# Handles: bare IPs, CIDR notation, leading zeros normalization
+# Output: one IP/CIDR per line
+extract_ipv4() {
+    local input_file="$1"
+
+    # Match IPv4 addresses with optional /prefix
+    # Uses grep -oE for portability (works on BSD and GNU grep)
+    # Then normalize leading zeros in each octet using sed
+    grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]{1,2})?' "$input_file" 2>/dev/null | \
+    sed -E 's/^0*([0-9]+)\.0*([0-9]+)\.0*([0-9]+)\.0*([0-9]+)/\1.\2.\3.\4/' || true
+}
+
+# Extract IPv6 addresses from input file
+# Handles: full form, compressed (::), CIDR notation
+# Output: one IP/CIDR per line (lowercase)
+extract_ipv6() {
+    local input_file="$1"
+
+    # IPv6 regex patterns - uses grep -oE for portability
+    # Matches various IPv6 formats including compressed notation
+    # Full: 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+    # Compressed: 2001:db8::1, ::1, ::, fe80::1
+    # With CIDR: 2001:db8::/32
+
+    grep -oiE '([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}(/[0-9]{1,3})?|([0-9a-fA-F]{1,4}:){1,7}:(/[0-9]{1,3})?|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}(/[0-9]{1,3})?|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}(/[0-9]{1,3})?|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}(/[0-9]{1,3})?|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}(/[0-9]{1,3})?|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}(/[0-9]{1,3})?|[0-9a-fA-F]{1,4}:(:[0-9a-fA-F]{1,4}){1,6}(/[0-9]{1,3})?|:(:[0-9a-fA-F]{1,4}){1,7}(/[0-9]{1,3})?|::(/[0-9]{1,3})?' "$input_file" 2>/dev/null | \
+    tr '[:upper:]' '[:lower:]' || true
+}
+
+#=============================================================================
+# IP FILTERING FUNCTIONS
+#=============================================================================
+
+# Filter out private/reserved IPv4 ranges
+# Input: file with one IP/CIDR per line
+# Output: filtered IPs to stdout
+filter_private_ipv4() {
+    local input_file="$1"
+
+    # Remove:
+    # 0.0.0.0/8       - Current network ("this" network)
+    # 10.0.0.0/8      - Private (RFC 1918)
+    # 100.64.0.0/10   - Carrier-grade NAT (RFC 6598)
+    # 127.0.0.0/8     - Loopback
+    # 169.254.0.0/16  - Link-local
+    # 172.16.0.0/12   - Private (RFC 1918)
+    # 192.0.0.0/24    - IETF Protocol Assignments
+    # 192.0.2.0/24    - Documentation (TEST-NET-1)
+    # 192.168.0.0/16  - Private (RFC 1918)
+    # 198.18.0.0/15   - Benchmarking
+    # 198.51.100.0/24 - Documentation (TEST-NET-2)
+    # 203.0.113.0/24  - Documentation (TEST-NET-3)
+    # 224.0.0.0/4     - Multicast (224-239)
+    # 240.0.0.0/4     - Reserved (240-255)
+
+    sed -r \
+        -e '/^0\./d' \
+        -e '/^10\./d' \
+        -e '/^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./d' \
+        -e '/^127\./d' \
+        -e '/^169\.254\./d' \
+        -e '/^172\.(1[6-9]|2[0-9]|3[0-1])\./d' \
+        -e '/^192\.0\.0\./d' \
+        -e '/^192\.0\.2\./d' \
+        -e '/^192\.168\./d' \
+        -e '/^198\.1[8-9]\./d' \
+        -e '/^198\.51\.100\./d' \
+        -e '/^203\.0\.113\./d' \
+        -e '/^(22[4-9]|23[0-9]|24[0-9]|25[0-5])\./d' \
+        "$input_file"
+}
+
+# Filter out private/reserved IPv6 ranges
+# Input: file with one IP/CIDR per line
+# Output: filtered IPs to stdout
+filter_private_ipv6() {
+    local input_file="$1"
+
+    # Remove:
+    # ::1             - Loopback
+    # ::/128          - Unspecified
+    # ::ffff:0:0/96   - IPv4-mapped
+    # 64:ff9b::/96    - IPv4/IPv6 translation
+    # 100::/64        - Discard prefix
+    # 2001::/32       - Teredo
+    # 2001:2::/48     - Benchmarking
+    # 2001:db8::/32   - Documentation
+    # 2001:10::/28    - ORCHID (deprecated)
+    # 2002::/16       - 6to4 (deprecated)
+    # fc00::/7        - Unique local (fc00::/8 and fd00::/8)
+    # fe80::/10       - Link-local
+    # ff00::/8        - Multicast
+
+    grep -Eiv '^(::1(/128)?$|::(/128)?$|::ffff:|64:ff9b:|100::|2001::|2001:2:|2001:db8:|2001:10:|2002:|fc[0-9a-f]{2}:|fd[0-9a-f]{2}:|fe[89ab][0-9a-f]:|ff[0-9a-f]{2}:)' "$input_file" || true
+}
+
+#=============================================================================
+# NFTABLES MANAGEMENT FUNCTIONS
+#=============================================================================
+
+# Check if nftables table exists
+check_nft_table() {
+    nft list table inet "${NFT_TABLE_NAME}" >/dev/null 2>&1
+}
+
+# Check if nftables set exists
+check_nft_set() {
+    local set_name="$1"
+    nft list set inet "${NFT_TABLE_NAME}" "${set_name}" >/dev/null 2>&1
+}
+
+# Create the complete nftables structure (table, sets, chain)
+create_nft_structure() {
+    local nft_script
+    nft_script=$(make_temp)
+
+    cat > "$nft_script" <<EOF
+#!/usr/sbin/nft -f
+
+# nftables-blacklist: Create table, sets, and chain
+table inet ${NFT_TABLE_NAME} {
+    set ${NFT_SET_NAME_V4} {
+        type ipv4_addr
+        flags interval
+        auto-merge
+    }
+
+    set ${NFT_SET_NAME_V6} {
+        type ipv6_addr
+        flags interval
+        auto-merge
+    }
+
+    chain ${NFT_CHAIN_NAME} {
+        type filter hook input priority ${NFT_CHAIN_PRIORITY}; policy accept;
+        ip saddr @${NFT_SET_NAME_V4} counter drop comment "IPv4 blacklist"
+        ip6 saddr @${NFT_SET_NAME_V6} counter drop comment "IPv6 blacklist"
+    }
+}
 EOF
 
-# can be IPv4 including netmask notation
-# IPv6 ? -e "s/^([0-9a-f:./]+).*/add $IPSET_TMP_BLACKLIST_NAME \1/p" \ IPv6
-sed -rn -e '/^#|^$/d' \
-  -e "s/^([0-9./]+).*/add $IPSET_TMP_BLACKLIST_NAME \\1/p" "$IP_BLACKLIST" >> "$IP_BLACKLIST_RESTORE"
+    log_verbose "Creating nftables table '${NFT_TABLE_NAME}'..."
 
-cat >> "$IP_BLACKLIST_RESTORE" <<EOF
-swap $IPSET_BLACKLIST_NAME $IPSET_TMP_BLACKLIST_NAME
-destroy $IPSET_TMP_BLACKLIST_NAME
-EOF
+    if [[ "$DRY_RUN" == "yes" ]]; then
+        log_verbose "[DRY-RUN] Would execute: nft -f $nft_script"
+        cat "$nft_script"
+        return 0
+    fi
 
-ipset -file  "$IP_BLACKLIST_RESTORE" restore
+    if nft -f "$nft_script"; then
+        return 0
+    else
+        return 1
+    fi
+}
 
-if [[ ${VERBOSE:-no} == yes ]]; then
-  echo
-  echo "Blacklisted addresses found: $(wc -l "$IP_BLACKLIST" | cut -d' ' -f1)"
-fi
+# Generate nftables script for atomic update
+# Uses chunked element addition for large sets
+generate_nft_script() {
+    local ipv4_file="$1"
+    local ipv6_file="$2"
+    local output_script="$3"
+    local chunk_size="${CHUNK_SIZE:-5000}"
+
+    {
+        echo "#!/usr/sbin/nft -f"
+        echo ""
+        echo "# nftables-blacklist atomic update"
+        echo "# Generated: $(date -Iseconds)"
+        echo ""
+
+        # Flush existing sets (part of atomic transaction)
+        echo "flush set inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V4}"
+        echo "flush set inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V6}"
+
+        # Add IPv4 elements in chunks
+        if [[ -s "$ipv4_file" ]]; then
+            echo ""
+            echo "# IPv4 addresses"
+
+            local count=0
+            local chunk=""
+
+            while IFS= read -r ip || [[ -n "$ip" ]]; do
+                [[ -z "$ip" ]] && continue
+
+                if [[ -n "$chunk" ]]; then
+                    chunk="${chunk}, ${ip}"
+                else
+                    chunk="${ip}"
+                fi
+
+                ((count++)) || true
+
+                if (( count >= chunk_size )); then
+                    echo "add element inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V4} { ${chunk} }"
+                    chunk=""
+                    count=0
+                fi
+            done < "$ipv4_file"
+
+            # Remaining elements
+            if [[ -n "$chunk" ]]; then
+                echo "add element inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V4} { ${chunk} }"
+            fi
+        fi
+
+        # Add IPv6 elements in chunks
+        if [[ -s "$ipv6_file" ]]; then
+            echo ""
+            echo "# IPv6 addresses"
+
+            local count=0
+            local chunk=""
+
+            while IFS= read -r ip || [[ -n "$ip" ]]; do
+                [[ -z "$ip" ]] && continue
+
+                if [[ -n "$chunk" ]]; then
+                    chunk="${chunk}, ${ip}"
+                else
+                    chunk="${ip}"
+                fi
+
+                ((count++)) || true
+
+                if (( count >= chunk_size )); then
+                    echo "add element inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V6} { ${chunk} }"
+                    chunk=""
+                    count=0
+                fi
+            done < "$ipv6_file"
+
+            if [[ -n "$chunk" ]]; then
+                echo "add element inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V6} { ${chunk} }"
+            fi
+        fi
+
+    } > "$output_script"
+}
+
+# Apply nftables script atomically
+apply_nft_script() {
+    local script_file="$1"
+
+    if [[ "$DRY_RUN" == "yes" ]]; then
+        log_verbose ""
+        log_verbose "[DRY-RUN] Would apply nftables script:"
+        log_verbose "  nft -f $script_file"
+        log_verbose ""
+        log_verbose "Script preview (first 50 lines):"
+        head -50 "$script_file"
+        if [[ $(wc -l < "$script_file") -gt 50 ]]; then
+            log_verbose "  ... ($(wc -l < "$script_file") total lines)"
+        fi
+        return 0
+    fi
+
+    # Validate script syntax first (dry-run)
+    if ! nft -c -f "$script_file" 2>/dev/null; then
+        log_error "nftables script validation failed"
+        log_error "Script location: $script_file"
+        return 1
+    fi
+
+    # Apply atomically
+    if ! nft -f "$script_file"; then
+        log_error "Failed to apply nftables script"
+        return 1
+    fi
+
+    return 0
+}
+
+#=============================================================================
+# DOWNLOAD FUNCTIONS
+#=============================================================================
+
+# Download a single blacklist URL
+# Returns: 0 on success, 1 on failure
+download_blacklist() {
+    local url="$1"
+    local output_file="$2"
+    local http_code
+
+    http_code=$(curl -L \
+        -A "nftables-blacklist/script/github" \
+        --connect-timeout "${CURL_CONNECT_TIMEOUT:-10}" \
+        --max-time "${CURL_MAX_TIME:-30}" \
+        -o "$output_file" \
+        -s \
+        -w "%{http_code}" \
+        "$url" 2>/dev/null) || true
+
+    case "$http_code" in
+        200|301|302|000)
+            # 200 = OK
+            # 301/302 = Redirect (already followed by -L)
+            # 000 = file:// URL
+            return 0
+            ;;
+        503)
+            log_warn "Service unavailable (503): $url"
+            return 1
+            ;;
+        *)
+            log_warn "HTTP $http_code: $url"
+            return 1
+            ;;
+    esac
+}
+
+# Download all blacklists and extract IPs
+download_all_blacklists() {
+    local ipv4_output="$1"
+    local ipv6_output="$2"
+    local success_count=0
+    local total_count=${#BLACKLISTS[@]}
+
+    for url in "${BLACKLISTS[@]}"; do
+        # Skip commented entries (shouldn't happen after sourcing, but be safe)
+        [[ "$url" =~ ^# ]] && continue
+
+        local dl_tmp
+        dl_tmp=$(make_temp)
+
+        if download_blacklist "$url" "$dl_tmp"; then
+            # Extract IPv4 if enabled
+            if [[ "${ENABLE_IPV4:-yes}" == "yes" ]]; then
+                extract_ipv4 "$dl_tmp" >> "$ipv4_output"
+            fi
+
+            # Extract IPv6 if enabled
+            if [[ "${ENABLE_IPV6:-yes}" == "yes" ]]; then
+                extract_ipv6 "$dl_tmp" >> "$ipv6_output"
+            fi
+
+            ((success_count++)) || true
+            show_progress
+        fi
+    done
+
+    log_verbose ""
+
+    if (( success_count == 0 )); then
+        die "All blacklist downloads failed ($total_count URLs)"
+    fi
+
+    log_verbose "Downloaded $success_count of $total_count blacklists"
+}
+
+#=============================================================================
+# MAIN FUNCTION
+#=============================================================================
+
+main() {
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --dry-run)
+                DRY_RUN=yes
+                shift
+                ;;
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            -*)
+                die "Unknown option: $1 (use --help for usage)"
+                ;;
+            *)
+                if [[ -z "$CONFIG_FILE" ]]; then
+                    CONFIG_FILE="$1"
+                else
+                    die "Unexpected argument: $1"
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    # Require config file
+    if [[ -z "$CONFIG_FILE" ]]; then
+        die "Please specify a configuration file, e.g. $0 /etc/nftables-blacklist/nftables-blacklist.conf"
+    fi
+
+    # Set up cleanup trap
+    trap cleanup EXIT
+
+    # Source configuration
+    # shellcheck source=nftables-blacklist.conf
+    if ! source "$CONFIG_FILE"; then
+        die "Cannot load configuration file: $CONFIG_FILE"
+    fi
+
+    # Apply defaults for optional settings
+    : "${NFT_TABLE_NAME:=blacklist}"
+    : "${NFT_SET_NAME_V4:=blocklist4}"
+    : "${NFT_SET_NAME_V6:=blocklist6}"
+    : "${NFT_CHAIN_NAME:=input}"
+    : "${NFT_CHAIN_PRIORITY:=-200}"
+    : "${ENABLE_IPV4:=yes}"
+    : "${ENABLE_IPV6:=yes}"
+    : "${CHUNK_SIZE:=5000}"
+    : "${CURL_CONNECT_TIMEOUT:=10}"
+    : "${CURL_MAX_TIME:=30}"
+
+    # Validate required commands
+    local required_cmds=(curl grep sed sort wc)
+    for cmd in "${required_cmds[@]}"; do
+        if ! exists "$cmd"; then
+            die "Required command not found: $cmd"
+        fi
+    done
+
+    # Check for nft (unless dry-run)
+    if [[ "$DRY_RUN" != "yes" ]]; then
+        if ! exists nft; then
+            die "nft command not found. Install nftables: apt install nftables"
+        fi
+        # Verify nftables version (need 0.9.0+ for interval sets with auto-merge)
+        local nft_version
+        nft_version=$(nft --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1)
+        if [[ -n "$nft_version" ]]; then
+            local major minor
+            major=${nft_version%%.*}
+            minor=${nft_version#*.}
+            if (( major == 0 && minor < 9 )); then
+                log_warn "nftables version $nft_version detected. Version 0.9.0+ recommended for full feature support."
+            fi
+        fi
+    fi
+
+    # Check for optional iprange (CIDR optimization)
+    local do_optimize_cidr=no
+    if exists iprange; then
+        do_optimize_cidr=yes
+    else
+        log_verbose "Note: 'iprange' not found. Install it for CIDR optimization: apt install iprange"
+    fi
+
+    # Validate output directories exist
+    local script_dir list_dir
+    script_dir=$(dirname "${NFT_BLACKLIST_SCRIPT:-/etc/nftables-blacklist/blacklist.nft}")
+    list_dir=$(dirname "${IP_BLACKLIST:-/etc/nftables-blacklist/ip-blacklist.list}")
+
+    if [[ ! -d "$script_dir" ]]; then
+        die "Directory does not exist: $script_dir (create it or update NFT_BLACKLIST_SCRIPT in config)"
+    fi
+
+    if [[ ! -d "$list_dir" ]]; then
+        die "Directory does not exist: $list_dir (create it or update IP_BLACKLIST in config)"
+    fi
+
+    # Check/create nftables structure
+    if [[ "$DRY_RUN" != "yes" ]]; then
+        if ! check_nft_table; then
+            if [[ "${FORCE:-no}" != "yes" ]]; then
+                log_error "nftables table '${NFT_TABLE_NAME}' does not exist."
+                log_error "Create it manually or set FORCE=yes in configuration."
+                log_error ""
+                log_error "Manual creation:"
+                log_error "  nft add table inet ${NFT_TABLE_NAME}"
+                log_error "  nft add set inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V4} '{ type ipv4_addr; flags interval; auto-merge; }'"
+                log_error "  nft add set inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V6} '{ type ipv6_addr; flags interval; auto-merge; }'"
+                log_error "  nft add chain inet ${NFT_TABLE_NAME} ${NFT_CHAIN_NAME} '{ type filter hook input priority ${NFT_CHAIN_PRIORITY}; policy accept; }'"
+                log_error "  nft add rule inet ${NFT_TABLE_NAME} ${NFT_CHAIN_NAME} ip saddr @${NFT_SET_NAME_V4} counter drop"
+                log_error "  nft add rule inet ${NFT_TABLE_NAME} ${NFT_CHAIN_NAME} ip6 saddr @${NFT_SET_NAME_V6} counter drop"
+                exit 1
+            fi
+
+            if ! create_nft_structure; then
+                die "Failed to create nftables structure"
+            fi
+        fi
+    else
+        log_verbose "[DRY-RUN] Skipping nftables table check"
+    fi
+
+    # Create temporary files for IP collection
+    local ipv4_raw ipv6_raw ipv4_clean ipv6_clean
+    ipv4_raw=$(make_temp)
+    ipv6_raw=$(make_temp)
+    ipv4_clean=$(make_temp)
+    ipv6_clean=$(make_temp)
+
+    log_verbose "Downloading blacklists..."
+
+    # Download and extract all IPs
+    download_all_blacklists "$ipv4_raw" "$ipv6_raw"
+
+    # Process IPv4
+    if [[ "${ENABLE_IPV4:-yes}" == "yes" ]]; then
+        log_verbose "Processing IPv4 addresses..."
+
+        if [[ -s "$ipv4_raw" ]]; then
+            # Filter private ranges and deduplicate
+            filter_private_ipv4 "$ipv4_raw" | sort -u > "$ipv4_clean"
+
+            # Optional CIDR optimization
+            if [[ "$do_optimize_cidr" == "yes" ]] && [[ -s "$ipv4_clean" ]]; then
+                local before_count after_count
+                before_count=$(wc -l < "$ipv4_clean" | tr -d ' ')
+
+                local ipv4_optimized
+                ipv4_optimized=$(make_temp)
+
+                if iprange --optimize "$ipv4_clean" > "$ipv4_optimized" 2>/dev/null && [[ -s "$ipv4_optimized" ]]; then
+                    mv "$ipv4_optimized" "$ipv4_clean"
+                    after_count=$(wc -l < "$ipv4_clean" | tr -d ' ')
+                    log_verbose "  CIDR optimization: $before_count -> $after_count entries"
+                fi
+            fi
+        fi
+    fi
+
+    # Process IPv6
+    if [[ "${ENABLE_IPV6:-yes}" == "yes" ]]; then
+        log_verbose "Processing IPv6 addresses..."
+
+        if [[ -s "$ipv6_raw" ]]; then
+            # Filter private ranges and deduplicate
+            filter_private_ipv6 "$ipv6_raw" | sort -u > "$ipv6_clean"
+        fi
+    fi
+
+    # Save plain text lists for reference
+    if [[ "${ENABLE_IPV4:-yes}" == "yes" ]] && [[ -s "$ipv4_clean" ]]; then
+        cp "$ipv4_clean" "${IP_BLACKLIST}.v4"
+    fi
+
+    if [[ "${ENABLE_IPV6:-yes}" == "yes" ]] && [[ -s "$ipv6_clean" ]]; then
+        cp "$ipv6_clean" "${IP_BLACKLIST}.v6"
+    fi
+
+    # Create combined list for backward compatibility
+    cat "$ipv4_clean" "$ipv6_clean" 2>/dev/null > "$IP_BLACKLIST" || true
+
+    log_verbose "Generating nftables script..."
+
+    # Generate atomic update script
+    generate_nft_script "$ipv4_clean" "$ipv6_clean" "$NFT_BLACKLIST_SCRIPT"
+
+    log_verbose "Applying nftables rules..."
+
+    # Apply atomically
+    if ! apply_nft_script "$NFT_BLACKLIST_SCRIPT"; then
+        die "Failed to apply blacklist"
+    fi
+
+    # Report statistics
+    local v4_count v6_count
+    v4_count=$(wc -l < "$ipv4_clean" 2>/dev/null | tr -d ' ' || echo 0)
+    v6_count=$(wc -l < "$ipv6_clean" 2>/dev/null | tr -d ' ' || echo 0)
+
+    if [[ "${VERBOSE:-yes}" == "yes" ]]; then
+        echo ""
+        echo "Blacklist update complete:"
+        echo "  IPv4 entries: $v4_count"
+        echo "  IPv6 entries: $v6_count"
+        echo "  Total:        $((v4_count + v6_count))"
+        echo ""
+        echo "Files updated:"
+        echo "  ${IP_BLACKLIST}.v4"
+        echo "  ${IP_BLACKLIST}.v6"
+        echo "  ${NFT_BLACKLIST_SCRIPT}"
+
+        if [[ "$DRY_RUN" == "yes" ]]; then
+            echo ""
+            echo "[DRY-RUN] No changes were applied to nftables"
+        fi
+    fi
+}
+
+# Entry point
+main "$@"
