@@ -16,6 +16,7 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 - **Auto-merge**: nftables automatically consolidates overlapping ranges
 - **Atomic updates**: Zero-gap protection during updates
 - **O(1) lookups**: Hash table based for maximum performance
+- **Pure Bash**: No Python, Perl, PHP, or awk required
 
 ## Requirements
 
