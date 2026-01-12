@@ -14,20 +14,20 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 
 ## Features
 
-- **nftables**: Uses nftables instead of deprecated iptables/ipset
-- **IPv4 + IPv6**: Full dual-stack support
-- **CIDR support**: Efficiently blocks entire ranges with interval sets
-- **Auto-merge**: nftables automatically consolidates overlapping ranges
-- **Atomic updates**: Zero-gap protection during updates
-- **O(1) lookups**: Hash table based for maximum performance
-- **Pure Bash**: No Python, Perl, PHP, or awk required
+- **nftables**: Uses modern nftables instead of deprecated iptables/ipset
+- **IPv4 + IPv6**: Blocks both IPv4 and IPv6 addresses
+- **CIDR support**: Block entire subnets (e.g., `10.0.0.0/8`), not just individual IPs
+- **Automatic aggregation**: Overlapping ranges are combined (e.g., two /24s become one /23)
+- **Atomic updates**: Blacklist swaps instantly - no window where malicious traffic slips through
+- **Fast filtering**: Efficient IP matching with minimal CPU overhead, even with 100k+ blocked IPs
+- **Pure Bash**: No Python, Perl, PHP, or awk dependencies
 
 ## Requirements
 
 - Debian 10+ / Ubuntu 20.04+ (or any Linux with nftables)
 - nftables (`apt install nftables`)
-- iprange (`apt install iprange`) - for CIDR optimization and whitelist
-- curl, grep, sed, sort, wc (standard utilities)
+- iprange (`apt install iprange`) - combines overlapping IP ranges and handles whitelist subtraction
+- curl, grep, sed, sort, wc (usually pre-installed)
 
 ## Quick Start (Debian/Ubuntu)
 
@@ -80,21 +80,7 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 
 ## Persistence Across Reboots
 
-### Method 1: Include in nftables.conf (Recommended)
-
-Add to `/etc/nftables.conf`:
-
-```nft
-#!/usr/sbin/nft -f
-flush ruleset
-
-# Include the blacklist (must exist)
-include "/etc/nftables-blacklist/blacklist.nft"
-
-# Your other rules here...
-```
-
-### Method 2: Systemd Service
+### Option 1: Systemd Service (Recommended)
 
 Create `/etc/systemd/system/nftables-blacklist.service`:
 
@@ -120,6 +106,16 @@ systemctl daemon-reload
 systemctl enable nftables-blacklist.service
 ```
 
+### Option 2: Include in nftables.conf
+
+If you prefer to load the blacklist as part of your main nftables config, add this to `/etc/nftables.conf`:
+
+```nft
+include "/etc/nftables-blacklist/blacklist.nft"
+```
+
+Note: The blacklist.nft file must exist before nftables starts, so run the script at least once first.
+
 ## Automatic Updates (Cron Job)
 
 Create `/etc/cron.d/nftables-blacklist`:
@@ -132,7 +128,7 @@ MAILTO=root
 33 23 * * * root /usr/local/sbin/update-blacklist.sh --cron /etc/nftables-blacklist/nftables-blacklist.conf
 ```
 
-**Note:** Don't update too frequently or some blacklist providers may ban your IP.
+**Tip:** Once or twice daily is enough. Updating too frequently may get you banned by blacklist providers.
 
 ## Check Dropped Packets
 
@@ -156,14 +152,14 @@ Edit `nftables-blacklist.conf`. Key settings:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `ENABLE_IPV4` | yes | Process IPv4 addresses |
-| `ENABLE_IPV6` | yes | Process IPv6 addresses |
-| `FORCE` | yes | Auto-create nftables structure if missing |
-| `VERBOSE` | yes | Show progress output (set to "no" for cron) |
-| `AUTO_WHITELIST` | no | Auto-detect and whitelist server's own IPs (recommended) |
-| `NFT_CHAIN_PRIORITY` | -200 | Lower = checked earlier in firewall |
-| `CURL_CONNECT_TIMEOUT` | 10 | Connection timeout in seconds |
-| `CURL_MAX_TIME` | 30 | Maximum time per download |
+| `ENABLE_IPV4` | yes | Block IPv4 addresses |
+| `ENABLE_IPV6` | yes | Block IPv6 addresses |
+| `FORCE` | yes | Automatically create the nftables table/sets if they don't exist |
+| `VERBOSE` | yes | Show progress output (use `--cron` flag to suppress) |
+| `AUTO_WHITELIST` | no | Auto-detect and whitelist your server's own IPs (recommended) |
+| `NFT_CHAIN_PRIORITY` | -200 | When to check the blacklist (-200 = very early, before most other rules) |
+| `CURL_CONNECT_TIMEOUT` | 10 | Seconds to wait for blacklist server connection |
+| `CURL_MAX_TIME` | 30 | Maximum seconds per blacklist download |
 
 ## Customizing Blacklists
 
@@ -201,22 +197,19 @@ WHITELIST=(
 )
 ```
 
-The whitelist uses proper CIDR subtraction for IPv4, so whitelisting `10.0.0.0/8` will correctly exclude that entire range even if the blacklist contains individual IPs like `10.1.2.3`.
+For IPv4, whitelisting a range like `10.0.0.0/8` will correctly exclude all IPs in that range, even if the blacklist contains individual IPs like `10.1.2.3`.
 
-**Note:** IPv6 whitelist uses exact matching only (iprange doesn't support IPv6 CIDR operations).
+**Note:** IPv6 whitelist only matches exact addresses (CIDR ranges not supported for IPv6 whitelist).
 
 ### Auto-Detect Server IPs
 
-Enable automatic detection of your server's IPs (recommended):
+To automatically whitelist your server's own IPs (recommended):
 
 ```bash
 AUTO_WHITELIST=yes
 ```
 
-This will:
-- Detect all local interface IPs
-- Query external services for public IPs (ipv4.o11.net / ipv6.o11.net with fallback to icanhazip.com)
-- Uses 5-second timeout for external lookups
+This detects all local interface IPs and queries external services (o11.net, icanhazip.com) for your public IPs. Useful if your server's IP ends up on a public blacklist.
 
 ## Dry Run Mode
 
@@ -236,16 +229,7 @@ This will:
 
 ### "nftables table does not exist"
 
-Set `FORCE=yes` in config (default), or create manually:
-
-```bash
-nft add table inet blacklist
-nft add set inet blacklist blacklist4 '{ type ipv4_addr; flags interval; auto-merge; }'
-nft add set inet blacklist blacklist6 '{ type ipv6_addr; flags interval; auto-merge; }'
-nft add chain inet blacklist input '{ type filter hook input priority -200; policy accept; }'
-nft add rule inet blacklist input ip saddr @blacklist4 counter drop
-nft add rule inet blacklist input ip6 saddr @blacklist6 counter drop
-```
+The script creates the required nftables structure automatically when `FORCE=yes` (the default). If you see this error, check that `FORCE=yes` is set in your config file.
 
 ### Check if an IP is blocked
 
@@ -256,44 +240,32 @@ nft get element inet blacklist blacklist6 { 2001:db8::1 }
 
 ### Integration with existing firewall
 
-The default priority (-200) ensures the blacklist is checked early. Adjust `NFT_CHAIN_PRIORITY` in config if you need different ordering.
+The blacklist runs in its own nftables table (`inet blacklist`) and won't conflict with your existing rules. The default priority (-200) means packets hit the blacklist check before most other firewall rules.
+
+If you need the blacklist checked at a different point, adjust `NFT_CHAIN_PRIORITY` in the config. Lower numbers = checked earlier.
 
 ### Large IP sets (100k+ entries)
 
-The script chunks IP additions (5000 per command by default) to avoid command-line limits. However, for very large sets, you may need to increase the kernel netlink buffer:
+The script handles large blacklists automatically by loading IPs in batches. However, with very large sets you may see errors like "Message too long" or "No buffer space available".
+
+Fix by increasing the kernel network buffer:
 
 ```bash
-# Check current values
-sysctl net.core.rmem_max net.core.rmem_default
-
-# Increase for large sets (add to /etc/sysctl.d/99-nftables.conf)
+# Add to /etc/sysctl.d/99-nftables.conf
 net.core.rmem_max = 8388608
 net.core.rmem_default = 8388608
 
-# Apply
+# Apply now
 sysctl -p /etc/sysctl.d/99-nftables.conf
 ```
 
-If you see errors like "Message too long" or "No buffer space available", increase these values.
+### Still using iptables commands?
 
-### iptables compatibility mode
+On modern Debian/Ubuntu, `iptables` commands are automatically translated to nftables behind the scenes. This blacklist uses a separate table, so there's no conflict.
 
-On modern Debian/Ubuntu, `iptables` is actually `iptables-nft` - a compatibility layer that translates iptables commands to nftables rules.
+**Watch out for:** `nft flush ruleset` - this deletes ALL nftables rules including the blacklist. The safer `iptables -F` only affects iptables rules and leaves the blacklist intact.
 
-**Good news:** Our blacklist uses a separate table (`inet blacklist`), so it won't conflict with iptables-nft rules (which use `ip filter`).
-
-**Caution:**
-- `nft flush ruleset` deletes ALL nftables rules, including our blacklist AND iptables-nft rules
-- `iptables -F` only flushes iptables-nft tables, our blacklist is unaffected
-
-To check which iptables you're using:
-```bash
-update-alternatives --query iptables
-# or
-iptables -V  # shows "nf_tables" if using iptables-nft
-```
-
-To see all nftables tables (including iptables-nft compatibility tables):
+To see all tables (including any created by iptables commands):
 ```bash
 nft list tables
 ```
@@ -311,42 +283,37 @@ wc -l /etc/nftables-blacklist/ip-blacklist.list.v4
 wc -l /etc/nftables-blacklist/ip-blacklist.list.v6
 ```
 
-## Migration from ipset-blacklist
+## Migrating from the old ipset/iptables version
 
-The old ipset/iptables version is preserved in the `archive/` directory.
-
-To migrate:
-
-1. Install nftables and run the new script
-2. Verify nftables rules are working
-3. Remove old iptables/ipset rules:
+1. Set up and test the new nftables version (see Quick Start)
+2. Once working, remove the old iptables rules:
    ```bash
    iptables -D INPUT -m set --match-set blacklist src -j DROP
    ipset destroy blacklist
    ```
 
+The old version is preserved in the `archive/` folder if you need to reference it.
+
 ## How It Works
 
-1. Downloads blacklists from configured URLs
-2. Extracts IPv4 and IPv6 addresses (handles various formats)
-3. Filters out private/reserved ranges (RFC 1918, link-local, etc.)
-4. Removes duplicates and sorts
-5. Optionally aggregates IPv4 into CIDR blocks (using iprange)
-6. Generates an nftables script with atomic flush+add
-7. Applies via `nft -f` (all-or-nothing transaction)
+1. Downloads IP blacklists from configured URLs (Spamhaus, blocklist.de, etc.)
+2. Extracts IPv4 and IPv6 addresses from various formats (plain IPs, CIDR, CSV, etc.)
+3. Filters out private ranges (10.x, 192.168.x, etc.) so you don't accidentally block internal traffic
+4. Removes duplicates and combines overlapping ranges to reduce set size
+5. Applies the whitelist to ensure your own server IPs are never blocked
+6. Loads all IPs into nftables in one transaction - the old blacklist is replaced instantly
 
-The atomic update ensures there's never a gap in protection during updates.
+The script creates a separate nftables table (`inet blacklist`) that won't interfere with your existing firewall rules.
 
 ## Files
 
 | Path | Description |
 |------|-------------|
-| `/usr/local/sbin/update-blacklist.sh` | Main script |
-| `/etc/nftables-blacklist/nftables-blacklist.conf` | Configuration |
-| `/etc/nftables-blacklist/blacklist.nft` | Generated nftables script |
-| `/etc/nftables-blacklist/ip-blacklist.list` | Combined IP list (reference) |
-| `/etc/nftables-blacklist/ip-blacklist.list.v4` | IPv4 list only |
-| `/etc/nftables-blacklist/ip-blacklist.list.v6` | IPv6 list only |
+| `/usr/local/sbin/update-blacklist.sh` | The script you run (manually or via cron) |
+| `/etc/nftables-blacklist/nftables-blacklist.conf` | Your configuration (blacklist URLs, whitelist, options) |
+| `/etc/nftables-blacklist/blacklist.nft` | Generated nftables rules (can be included in nftables.conf) |
+| `/etc/nftables-blacklist/ip-blacklist.list.v4` | Plain text list of blocked IPv4 addresses |
+| `/etc/nftables-blacklist/ip-blacklist.list.v6` | Plain text list of blocked IPv6 addresses |
 
 ## License
 
