@@ -1,7 +1,6 @@
 # nftables-blacklist (formerly ipset-blacklist)
 
 [![CI](https://github.com/trick77/ipset-blacklist/actions/workflows/ci.yaml/badge.svg)](https://github.com/trick77/ipset-blacklist/actions/workflows/ci.yaml)
-[![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
 [![Bash 4.0+](https://img.shields.io/badge/bash-4.0%2B-blue)](https://www.gnu.org/software/bash/)
 [![License](https://img.shields.io/github/license/trick77/ipset-blacklist)](LICENSE)
 
