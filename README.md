@@ -1,5 +1,10 @@
 # nftables-blacklist (formerly ipset-blacklist)
 
+[![CI](https://github.com/trick77/ipset-blacklist/actions/workflows/ci.yaml/badge.svg)](https://github.com/trick77/ipset-blacklist/actions/workflows/ci.yaml)
+[![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen)](https://www.shellcheck.net/)
+[![Bash 4.0+](https://img.shields.io/badge/bash-4.0%2B-blue)](https://www.gnu.org/software/bash/)
+[![License](https://img.shields.io/github/license/trick77/ipset-blacklist)](LICENSE)
+
 > **Freshly defrosted from the [GitHub Arctic Code Vault](https://archiveprogram.github.com/arctic-vault/)** and upgraded from iptables to nftables. Yes, the nftables syntax is... an acquired taste. But I finally bow to the netfilter overlords.
 >
 > **Early stage** - expect bugs. Testing and feedback welcome.
