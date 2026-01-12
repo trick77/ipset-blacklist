@@ -1,0 +1,32 @@
+# Sample blocklist for testing
+# Contains mix of IPv4 and IPv6, public and private
+
+# Public IPv4
+1.1.1.1
+8.8.8.8
+45.33.32.156
+
+# Private IPv4 (should be filtered)
+10.0.0.1
+192.168.1.1
+172.16.0.1
+
+# Public IPv6
+2001:4860:4860::8888
+2606:4700:4700::1111
+
+# Private IPv6 (should be filtered)
+fe80::1
+fd00::1
+::1
+
+# CIDR ranges
+1.2.3.0/24
+2001:4860::/32
+
+# Embedded in text
+Block this IP: 93.184.216.34 immediately
+IPv6 threat: 2620:fe::fe detected
+
+# Leading zeros
+001.002.003.004

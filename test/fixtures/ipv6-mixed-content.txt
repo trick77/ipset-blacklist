@@ -1,0 +1,5 @@
+# IPv6 blocklist
+Malicious host: 2001:4860:4860::8888 detected
+Block range 2606:4700::/32 immediately
+No IP here
+Address 2a00:1450:4001:82a::200e flagged
