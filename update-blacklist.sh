@@ -322,12 +322,6 @@ check_nft_table() {
   nft list table inet "${NFT_TABLE_NAME}" >/dev/null 2>&1
 }
 
-# Check if nftables set exists
-check_nft_set() {
-  local set_name="$1"
-  nft list set inet "${NFT_TABLE_NAME}" "${set_name}" >/dev/null 2>&1
-}
-
 # Create the complete nftables structure (table, sets, chain)
 create_nft_structure() {
   local nft_script
@@ -373,13 +367,35 @@ EOF
   fi
 }
 
-# Generate nftables script for atomic update
-# Uses chunked element addition for large sets
-generate_nft_script() {
-  local ipv4_file="$1"
-  local ipv6_file="$2"
-  local output_script="$3"
+# Output chunked nft add commands for a set
+# Args: $1=file, $2=set_name, $3=comment
+output_chunked_elements() {
+  local file="$1" set_name="$2" comment="$3"
   local chunk_size="${CHUNK_SIZE:-5000}"
+  local count=0 chunk=""
+
+  [[ -s "$file" ]] || return 0
+
+  echo ""
+  echo "# $comment"
+
+  while IFS= read -r ip || [[ -n "$ip" ]]; do
+    [[ -z "$ip" ]] && continue
+    chunk="${chunk:+$chunk, }$ip"
+    ((count++)) || true
+
+    if (( count >= chunk_size )); then
+      echo "add element inet ${NFT_TABLE_NAME} ${set_name} { ${chunk} }"
+      chunk="" count=0
+    fi
+  done < "$file"
+
+  [[ -n "$chunk" ]] && echo "add element inet ${NFT_TABLE_NAME} ${set_name} { ${chunk} }"
+}
+
+# Generate nftables script for atomic update
+generate_nft_script() {
+  local ipv4_file="$1" ipv6_file="$2" output_script="$3"
 
   {
     echo "#!/usr/sbin/nft -f"
@@ -387,74 +403,11 @@ generate_nft_script() {
     echo "# nftables-blacklist atomic update"
     echo "# Generated: $(date -Iseconds)"
     echo ""
-
-    # Flush existing sets (part of atomic transaction)
     echo "flush set inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V4}"
     echo "flush set inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V6}"
 
-    # Add IPv4 elements in chunks
-    if [[ -s "$ipv4_file" ]]; then
-      echo ""
-      echo "# IPv4 addresses"
-
-      local count=0
-      local chunk=""
-
-      while IFS= read -r ip || [[ -n "$ip" ]]; do
-        [[ -z "$ip" ]] && continue
-
-        if [[ -n "$chunk" ]]; then
-          chunk="${chunk}, ${ip}"
-        else
-          chunk="${ip}"
-        fi
-
-        ((count++)) || true
-
-        if (( count >= chunk_size )); then
-          echo "add element inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V4} { ${chunk} }"
-          chunk=""
-          count=0
-        fi
-      done < "$ipv4_file"
-
-      # Remaining elements
-      if [[ -n "$chunk" ]]; then
-        echo "add element inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V4} { ${chunk} }"
-      fi
-    fi
-
-    # Add IPv6 elements in chunks
-    if [[ -s "$ipv6_file" ]]; then
-      echo ""
-      echo "# IPv6 addresses"
-
-      local count=0
-      local chunk=""
-
-      while IFS= read -r ip || [[ -n "$ip" ]]; do
-        [[ -z "$ip" ]] && continue
-
-        if [[ -n "$chunk" ]]; then
-          chunk="${chunk}, ${ip}"
-        else
-          chunk="${ip}"
-        fi
-
-        ((count++)) || true
-
-        if (( count >= chunk_size )); then
-          echo "add element inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V6} { ${chunk} }"
-          chunk=""
-          count=0
-        fi
-      done < "$ipv6_file"
-
-      if [[ -n "$chunk" ]]; then
-        echo "add element inet ${NFT_TABLE_NAME} ${NFT_SET_NAME_V6} { ${chunk} }"
-      fi
-    fi
-
+    output_chunked_elements "$ipv4_file" "$NFT_SET_NAME_V4" "IPv4 addresses"
+    output_chunked_elements "$ipv6_file" "$NFT_SET_NAME_V6" "IPv6 addresses"
   } > "$output_script"
 }
 
