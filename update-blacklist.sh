@@ -49,17 +49,17 @@ exists() {
 
 # Print message if VERBOSE=yes
 log_verbose() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "$@"
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "$@" || true
 }
 
 # Print success message
 log_success() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "${C_GREEN}$*${C_RESET}"
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "${C_GREEN}$*${C_RESET}" || true
 }
 
 # Print info message
 log_info() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "${C_BLUE}$*${C_RESET}"
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "${C_BLUE}$*${C_RESET}" || true
 }
 
 # Print error to stderr
@@ -80,7 +80,7 @@ die() {
 
 # Show progress dot
 show_progress() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -n "."
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -n "." || true
 }
 
 # Create temp file and register for cleanup
@@ -851,3 +851,4 @@ main() {
 
 # Entry point
 main "$@"
+exit 0
