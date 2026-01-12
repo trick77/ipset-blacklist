@@ -96,6 +96,7 @@ cleanup() {
   for f in "${TEMP_FILES[@]:-}"; do
     [[ -f "$f" ]] && rm -f "$f" || true
   done
+  return 0
 }
 
 # Show usage information
