@@ -124,7 +124,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 MAILTO=root
 
 # Update blacklist daily at 23:33
-33 23 * * * root /usr/local/sbin/update-blacklist.sh /etc/nftables-blacklist/nftables-blacklist.conf
+33 23 * * * root /usr/local/sbin/update-blacklist.sh --cron /etc/nftables-blacklist/nftables-blacklist.conf
 ```
 
 **Note:** Don't update too frequently or some blacklist providers may ban your IP.
