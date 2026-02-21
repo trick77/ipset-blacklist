@@ -6,7 +6,7 @@
 
 > **Freshly defrosted from the [GitHub Arctic Code Vault](https://archiveprogram.github.com/arctic-vault/)** and upgraded from iptables to nftables. Yes, the nftables syntax is... an acquired taste. But I finally bow to the netfilter overlords.
 >
-> **Early stage** - expect bugs. Testing and feedback welcome.
+> **Early stage** - expect bugs.
 
 A Bash script that uses nftables to block large numbers of malicious IP addresses from public blacklists. Supports both IPv4 and IPv6 with CIDR notation.
 
