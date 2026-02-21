@@ -38,7 +38,7 @@ exists() {
 
 # Print message if VERBOSE=yes
 log_verbose() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "$@" || true
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$@" || true
 }
 
 # Print success message
@@ -283,12 +283,6 @@ apply_whitelist() {
   local whitelist_file="$2"
   local output_file="$3"
   local ip_version="$4"
-
-  # If no whitelist entries, just copy input to output
-  if [[ ! -s "$whitelist_file" ]]; then
-    cp "$blacklist_file" "$output_file"
-    return 0
-  fi
 
   if [[ "$ip_version" == "4" ]]; then
     # IPv4: use iprange for proper CIDR subtraction
@@ -580,6 +574,7 @@ main() {
       local major minor
       major=${nft_version%%.*}
       minor=${nft_version#*.}
+      minor=${minor%%.*}
       if (( major == 0 && minor < 9 )); then
         log_warn "nftables version $nft_version detected. Version 0.9.0+ recommended for full feature support."
       fi
@@ -647,14 +642,14 @@ main() {
       # CIDR optimization (aggregates overlapping ranges)
       if [[ -s "$ipv4_clean" ]]; then
         local before_count after_count
-        before_count=$(wc -l < "$ipv4_clean" | tr -d ' ')
+        before_count=$(wc -l < "$ipv4_clean")
 
         local ipv4_optimized
         ipv4_optimized=$(make_temp)
 
         if iprange --optimize "$ipv4_clean" > "$ipv4_optimized" 2>/dev/null && [[ -s "$ipv4_optimized" ]]; then
           mv "$ipv4_optimized" "$ipv4_clean"
-          after_count=$(wc -l < "$ipv4_clean" | tr -d ' ')
+          after_count=$(wc -l < "$ipv4_clean")
           log_verbose "  CIDR optimization: $before_count → $after_count entries"
         fi
       fi
@@ -720,11 +715,11 @@ main() {
       local ipv4_filtered
       ipv4_filtered=$(make_temp)
       local before_wl after_wl
-      before_wl=$(wc -l < "$ipv4_clean" | tr -d ' ')
+      before_wl=$(wc -l < "$ipv4_clean")
 
       if apply_whitelist "$ipv4_clean" "$whitelist_v4" "$ipv4_filtered" "4"; then
         mv "$ipv4_filtered" "$ipv4_clean"
-        after_wl=$(wc -l < "$ipv4_clean" | tr -d ' ')
+        after_wl=$(wc -l < "$ipv4_clean")
         log_verbose "  Whitelist applied: $before_wl → $after_wl entries"
       fi
     fi
@@ -734,12 +729,11 @@ main() {
       log_verbose "Applying IPv6 whitelist..."
       local ipv6_filtered
       ipv6_filtered=$(make_temp)
-      local before_wl after_wl
-      before_wl=$(wc -l < "$ipv6_clean" | tr -d ' ')
+      before_wl=$(wc -l < "$ipv6_clean")
 
       if apply_whitelist "$ipv6_clean" "$whitelist_v6" "$ipv6_filtered" "6"; then
         mv "$ipv6_filtered" "$ipv6_clean"
-        after_wl=$(wc -l < "$ipv6_clean" | tr -d ' ')
+        after_wl=$(wc -l < "$ipv6_clean")
         log_verbose "  Whitelist applied: $before_wl → $after_wl entries"
       fi
     fi
@@ -771,8 +765,8 @@ main() {
 
   # Report statistics
   local v4_count v6_count
-  v4_count=$(wc -l < "$ipv4_clean" 2>/dev/null | tr -d ' ' || echo 0)
-  v6_count=$(wc -l < "$ipv6_clean" 2>/dev/null | tr -d ' ' || echo 0)
+  v4_count=$(wc -l < "$ipv4_clean" 2>/dev/null || echo 0)
+  v6_count=$(wc -l < "$ipv6_clean" 2>/dev/null || echo 0)
 
   if [[ "${VERBOSE:-yes}" == "yes" ]]; then
     log_success "Blacklist update complete"
@@ -789,5 +783,3 @@ main() {
 
 # Entry point
 main "$@" || exit 1
-set +e
-exit 0
