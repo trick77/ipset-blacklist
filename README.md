@@ -57,7 +57,7 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 
 2. **Download the script:**
    ```bash
-   wget -O /usr/local/sbin/update-blacklist.sh \
+   curl -fsSL -o /usr/local/sbin/update-blacklist.sh \
      https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
    chmod +x /usr/local/sbin/update-blacklist.sh
    ```
@@ -65,8 +65,9 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 3. **Create configuration directory and download config:**
    ```bash
    mkdir -p /etc/nftables-blacklist
-   wget -O /etc/nftables-blacklist/nftables-blacklist.conf \
-     https://raw.githubusercontent.com/trick77/ipset-blacklist/master/nftables-blacklist.conf
+   [ -f /etc/nftables-blacklist/nftables-blacklist.conf ] \
+     || curl -fsSL -o /etc/nftables-blacklist/nftables-blacklist.conf \
+          https://raw.githubusercontent.com/trick77/ipset-blacklist/master/nftables-blacklist.conf
    ```
 
 4. **Edit configuration (optional):**
