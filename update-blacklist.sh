@@ -239,12 +239,16 @@ get_server_ips() {
   # Get local interface IPs
   if exists ip; then
     # IPv4 from interfaces
-    ip -4 addr show 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' || true
+    ip -4 addr show 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' \
+      | grep -Ev '^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|169\.254\.)' || true
     # IPv6 from interfaces
-    ip -6 addr show 2>/dev/null | grep -oE 'inet6 [0-9a-fA-F:]+' | awk '{print $2}' || true
+    ip -6 addr show 2>/dev/null | grep -oE 'inet6 [0-9a-fA-F:]+' | awk '{print $2}' \
+      | grep -Eiv '^(::1$|::$|fe80:|f[cd][0-9a-f]{2}:)' || true
   elif exists hostname; then
     # Fallback: hostname -I (space-separated list of all IPs)
-    hostname -I 2>/dev/null | tr ' ' '\n' | grep -v '^$' || true
+    hostname -I 2>/dev/null | tr ' ' '\n' | grep -v '^$' \
+      | grep -Ev '^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|169\.254\.)' \
+      | grep -Eiv '^(::1$|::$|fe80:|f[cd][0-9a-f]{2}:)' || true
   fi
 
   # Get public IPs via external services (with short timeout)
