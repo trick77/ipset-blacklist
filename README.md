@@ -96,9 +96,8 @@ A Bash script that downloads public IP blacklists and blocks them via nftables. 
 
 ## Persistence Across Reboots
 
-Create `/etc/systemd/system/nftables-blacklist.service`:
-
-```ini
+```bash
+sudo cat <<'EOF' > /etc/systemd/system/nftables-blacklist.service
 [Unit]
 Description=nftables IP blacklist
 After=network.target
@@ -110,6 +109,7 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
 Enable it:
@@ -121,9 +121,8 @@ sudo systemctl enable nftables-blacklist.service
 
 ## Automatic Updates (Systemd Timer)
 
-Create `/etc/systemd/system/nftables-blacklist-update.timer`:
-
-```ini
+```bash
+sudo cat <<'EOF' > /etc/systemd/system/nftables-blacklist-update.timer
 [Unit]
 Description=Update nftables IP blacklist daily
 
@@ -134,11 +133,11 @@ RandomizedDelaySec=300
 
 [Install]
 WantedBy=timers.target
+EOF
 ```
 
-Create `/etc/systemd/system/nftables-blacklist-update.service`:
-
-```ini
+```bash
+sudo cat <<'EOF' > /etc/systemd/system/nftables-blacklist-update.service
 [Unit]
 Description=Update nftables IP blacklist
 After=network-online.target
@@ -147,6 +146,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/update-blacklist.sh --cron /etc/nftables-blacklist/nftables-blacklist.conf
+EOF
 ```
 
 Enable it:
