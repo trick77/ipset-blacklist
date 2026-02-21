@@ -1,0 +1,6 @@
+# This is a comment line
+Blocked IP: 1.2.3.4 at 2024-01-01
+Another line with 8.8.8.8 embedded
+No IP here
+Plain line: 203.0.114.1
+CIDR block 10.0.0.0/8 should be filtered

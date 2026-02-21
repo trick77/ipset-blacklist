@@ -1,0 +1,106 @@
+# Generated blacklist files
+ip-blacklist.list
+ip-blacklist.restore
+*.list
+*.restore
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+
+# Backup files
+*.bak
+*.backup
+*~
+*.swp
+*.swo
+
+# Log files
+*.log
+
+# OS-specific files
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Linux
+*~
+.directory
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDEs and Editors
+# VSCode
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs (IntelliJ, PyCharm, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-v][a-z]
+[._]sw[a-p]
+Session.vim
+.netrwhist
+
+# Neovim
+*.nvim
+
+# Emacs
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+
+# Atom
+.atom/
+
+# Eclipse
+.project
+.classpath
+.settings/
+.metadata/
+
+# NetBeans
+nbproject/
+nbbuild/
+nbdist/
+
+# Agentic Coding Tools
+AGENTS.md
+.cursor/
+.cursorignore
+.windsurf/
+.cline/
+.aider*
+.github/copilot-instructions.md.backup
+.continue/
+.cody/
+.tabnine/
+.claude/
+.env
+.env.local
+.env.*.local
+*.pid

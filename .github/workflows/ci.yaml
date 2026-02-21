@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [master]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          severity: warning
+
+  syntax:
+    name: Bash Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check syntax
+        run: bash -n update-blacklist.sh
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install BATS
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y iprange
+
+      - name: Run unit tests
+        run: bats test/unit/*.bats
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install BATS
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y iprange
+
+      - name: Create config directory
+        run: sudo mkdir -p /etc/nftables-blacklist && sudo chmod 777 /etc/nftables-blacklist
+
+      - name: Run integration tests
+        run: bats test/integration/*.bats
+
+  dry-run:
+    name: Dry Run Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y iprange
+
+      - name: Create config directory
+        run: sudo mkdir -p /etc/nftables-blacklist && sudo chmod 777 /etc/nftables-blacklist
+
+      - name: Run dry-run test
+        run: ./update-blacklist.sh --dry-run test/nftables-blacklist.conf
