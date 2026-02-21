@@ -10,7 +10,7 @@
 
 A Bash script that downloads public IP blacklists and blocks them via nftables. IPv4, IPv6, CIDR.
 
-> **Looking for the old ipset/iptables version?** See the [archive/](archive/) folder.
+> Looking for the old ipset/iptables version? See the [archive/](archive/) folder.
 
 ## Table of Contents
 
