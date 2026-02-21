@@ -129,7 +129,7 @@ Description=Update nftables IP blacklist daily
 [Timer]
 OnCalendar=*-*-* 23:33:00
 Persistent=true
-RandomizedDelaySec=300
+RandomizedDelaySec=14400
 
 [Install]
 WantedBy=timers.target
