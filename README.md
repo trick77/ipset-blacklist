@@ -12,6 +12,25 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 
 > **Looking for the old ipset/iptables version?** See the [archive/](archive/) folder.
 
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick Start (Debian/Ubuntu)](#quick-start-debianubuntu)
+- [Persistence Across Reboots](#persistence-across-reboots)
+- [Automatic Updates (Cron Job)](#automatic-updates-cron-job)
+- [Check Dropped Packets](#check-dropped-packets)
+- [Configuration Options](#configuration-options)
+- [Customizing Blacklists](#customizing-blacklists)
+- [Whitelist (Prevent Self-Blocking)](#whitelist-prevent-self-blocking)
+- [Dry Run Mode](#dry-run-mode)
+- [Troubleshooting](#troubleshooting)
+- [Migrating from the old ipset/iptables version](#migrating-from-the-old-ipsetiptables-version)
+- [How It Works](#how-it-works)
+- [Files](#files)
+- [License](#license)
+- [Credits](#credits)
+
 ## Features
 
 - **nftables**: Uses modern nftables instead of deprecated iptables/ipset
@@ -302,6 +321,12 @@ wc -l /etc/nftables-blacklist/ip-blacklist.list.v6
    # Back up anything you need, then remove the old config and data directory
    rm -rI /etc/ipset-blacklist
    ```
+
+> **Stale rule?** If the `iptables -D ... --match-set` command fails with *"Set blacklist doesn't exist"*, the ipset is already gone but a stale rule remains. Delete it by rule number instead:
+> ```bash
+> iptables -L INPUT --line-numbers
+> iptables -D INPUT <rule-number>
+> ```
 
 > **Note for Debian Trixie (and newer) users:** On modern Debian, `iptables` is usually just a compatibility layer (`iptables-nft`) that translates commands to nftables under the hood. If you previously switched to the legacy iptables backend (`iptables-legacy` / `update-alternatives --set iptables /usr/sbin/iptables-legacy`), you'll need to switch back to the nftables backend for this script to work:
 > ```bash
