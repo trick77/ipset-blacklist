@@ -26,6 +26,7 @@ A Bash script that downloads public IP blacklists and blocks them via nftables. 
 - [Dry Run Mode](#dry-run-mode)
 - [Troubleshooting](#troubleshooting)
 - [Migrating from the old ipset/iptables version](#migrating-from-the-old-ipsetiptables-version)
+- [Contributing](#contributing)
 
 ## Features
 
@@ -315,4 +316,10 @@ sysctl -p /etc/sysctl.d/99-nftables.conf
 > update-alternatives --set iptables /usr/sbin/iptables-nft
 > update-alternatives --set ip6tables /usr/sbin/ip6tables-nft
 > ```
+
+## Contributing
+
+Found a bug? Pull requests with fixes are always welcome.
+
+This project intentionally keeps a narrow focus, so install scripts, additional OS/distro support, and feature additions won't be merged. If you have something bigger in mind, you're welcome to fork and make it your own.
 
