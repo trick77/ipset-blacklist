@@ -300,7 +300,7 @@ apply_whitelist() {
     # IPv6: exact match filtering only (iprange doesn't support IPv6)
     # This means 2001:db8::1 in whitelist won't filter 2001:db8::/32 in blacklist
     grep -v -F -x -f "$whitelist_file" "$blacklist_file" > "$output_file" 2>/dev/null || cp "$blacklist_file" "$output_file"
-    log_verbose "  Note: IPv6 whitelist uses exact matching only (no CIDR subtraction)"
+    log_verbose "  Note: IPv6 whitelist uses exact matching only"
   fi
 
   return 0
