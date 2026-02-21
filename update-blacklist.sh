@@ -715,7 +715,7 @@ main() {
     log_verbose "Auto-detecting server IPs for whitelist..."
     local auto_ips
     auto_ips=$(make_temp)
-    get_server_ips > "$auto_ips"
+    get_server_ips | sort -u > "$auto_ips"
 
     if [[ -s "$auto_ips" ]]; then
       while IFS= read -r ip || [[ -n "$ip" ]]; do
@@ -794,7 +794,6 @@ main() {
   v6_count=$(wc -l < "$ipv6_clean" 2>/dev/null | tr -d ' ' || echo 0)
 
   if [[ "${VERBOSE:-yes}" == "yes" ]]; then
-    echo ""
     log_success "Blacklist update complete"
     echo -e "  IPv4: ${C_BOLD}$v4_count${C_RESET}  IPv6: ${C_BOLD}$v6_count${C_RESET}  Total: ${C_BOLD}$((v4_count + v6_count))${C_RESET}"
 
