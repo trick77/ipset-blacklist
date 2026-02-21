@@ -376,25 +376,21 @@ EOF
 output_chunked_elements() {
   local file="$1" set_name="$2" comment="$3"
   local chunk_size="${CHUNK_SIZE:-5000}"
-  local count=0 chunk=""
 
   [[ -s "$file" ]] || return 0
 
   echo ""
   echo "# $comment"
 
-  while IFS= read -r ip || [[ -n "$ip" ]]; do
-    [[ -z "$ip" ]] && continue
-    chunk="${chunk:+$chunk, }$ip"
-    ((count++)) || true
-
-    if (( count >= chunk_size )); then
-      echo "add element inet ${NFT_TABLE_NAME} ${set_name} { ${chunk} }"
-      chunk="" count=0
-    fi
-  done < "$file"
-
-  [[ -n "$chunk" ]] && echo "add element inet ${NFT_TABLE_NAME} ${set_name} { ${chunk} }"
+  awk -v cs="$chunk_size" -v table="$NFT_TABLE_NAME" -v sn="$set_name" '
+  (NR - 1) % cs == 0 {
+    if (NR > 1) print " }"
+    printf "add element inet %s %s { %s", table, sn, $0
+    next
+  }
+  { printf ", %s", $0 }
+  END { if (NR > 0) print " }" }
+  ' "$file"
 }
 
 # Generate nftables script for atomic update
