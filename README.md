@@ -1,8 +1,8 @@
 # nftables-blacklist (formerly ipset-blacklist)
 
-[![CI](https://github.com/trick77/ipset-blacklist/actions/workflows/ci.yaml/badge.svg)](https://github.com/trick77/ipset-blacklist/actions/workflows/ci.yaml)
+[![CI](https://github.com/trick77/nftables-blacklist/actions/workflows/ci.yaml/badge.svg)](https://github.com/trick77/nftables-blacklist/actions/workflows/ci.yaml)
 [![Bash 4.0+](https://img.shields.io/badge/bash-4.0%2B-blue)](https://www.gnu.org/software/bash/)
-[![License](https://img.shields.io/github/license/trick77/ipset-blacklist)](LICENSE)
+[![License](https://img.shields.io/github/license/trick77/nftables-blacklist)](LICENSE)
 
 > **Freshly defrosted from the [GitHub Arctic Code Vault](https://archiveprogram.github.com/arctic-vault/)** and upgraded from iptables to nftables. Yes, the nftables syntax is... an acquired taste. But I finally bow to the netfilter overlords.
 >
@@ -58,7 +58,7 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 2. **Download the script:**
    ```bash
    curl -fsSL -o /usr/local/sbin/update-blacklist.sh \
-     https://raw.githubusercontent.com/trick77/ipset-blacklist/master/update-blacklist.sh
+     https://raw.githubusercontent.com/trick77/nftables-blacklist/master/update-blacklist.sh
    chmod +x /usr/local/sbin/update-blacklist.sh
    ```
 
@@ -67,7 +67,7 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
    mkdir -p /etc/nftables-blacklist
    [ -f /etc/nftables-blacklist/nftables-blacklist.conf ] \
      || curl -fsSL -o /etc/nftables-blacklist/nftables-blacklist.conf \
-          https://raw.githubusercontent.com/trick77/ipset-blacklist/master/nftables-blacklist.conf
+          https://raw.githubusercontent.com/trick77/nftables-blacklist/master/nftables-blacklist.conf
    ```
 
 4. **Edit configuration (optional):**
@@ -364,5 +364,5 @@ MIT License - See LICENSE file for details.
 
 ## Credits
 
-Originally based on [trick77/ipset-blacklist](https://github.com/trick77/ipset-blacklist).
+Originally based on [trick77/ipset-blacklist](https://github.com/trick77/nftables-blacklist).
 Rewritten for nftables with IPv6 support.
