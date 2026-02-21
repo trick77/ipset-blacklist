@@ -37,13 +37,6 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
    apt install nftables curl iprange
    ```
 
-   If you're not already running a firewall manager that uses nftables (most modern ones do), also enable the nftables service:
-
-   ```bash
-   systemctl enable nftables
-   systemctl start nftables
-   ```
-
 2. **Download the script:**
    ```bash
    wget -O /usr/local/sbin/update-blacklist.sh \
