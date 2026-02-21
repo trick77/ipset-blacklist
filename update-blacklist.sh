@@ -376,21 +376,18 @@ EOF
 output_chunked_elements() {
   local file="$1" set_name="$2" comment="$3"
   local chunk_size="${CHUNK_SIZE:-5000}"
+  local -a chunk_array
+  local joined
 
   [[ -s "$file" ]] || return 0
 
   echo ""
   echo "# $comment"
 
-  awk -v cs="$chunk_size" -v table="$NFT_TABLE_NAME" -v sn="$set_name" '
-  (NR - 1) % cs == 0 {
-    if (NR > 1) print " }"
-    printf "add element inet %s %s { %s", table, sn, $0
-    next
-  }
-  { printf ", %s", $0 }
-  END { if (NR > 0) print " }" }
-  ' "$file"
+  while mapfile -t -n "$chunk_size" chunk_array && (( ${#chunk_array[@]} > 0 )); do
+    printf -v joined ', %s' "${chunk_array[@]}"
+    echo "add element inet ${NFT_TABLE_NAME} ${set_name} { ${joined:2} }"
+  done < "$file"
 }
 
 # Generate nftables script for atomic update
