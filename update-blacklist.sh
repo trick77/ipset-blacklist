@@ -23,17 +23,6 @@ set -euo pipefail
 DRY_RUN=no
 CONFIG_FILE=""
 
-# Colors (disabled in cron mode or non-terminal)
-if [[ -t 1 ]]; then
-  C_RED='\033[0;31m'
-  C_GREEN='\033[0;32m'
-  C_YELLOW='\033[0;33m'
-  C_BLUE='\033[0;34m'
-  C_BOLD='\033[1m'
-  C_RESET='\033[0m'
-else
-  C_RED='' C_GREEN='' C_YELLOW='' C_BLUE='' C_BOLD='' C_RESET=''
-fi
 
 # Temporary files (set in main, cleaned up on exit)
 declare -a TEMP_FILES=()
@@ -54,22 +43,22 @@ log_verbose() {
 
 # Print success message
 log_success() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "${C_GREEN}$*${C_RESET}" || true
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$*" || true
 }
 
 # Print info message
 log_info() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -e "${C_BLUE}$*${C_RESET}" || true
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$*" || true
 }
 
 # Print error to stderr
 log_error() {
-  echo -e >&2 "${C_RED}Error: $*${C_RESET}"
+  echo >&2 "Error: $*"
 }
 
 # Print warning to stderr
 log_warn() {
-  echo -e >&2 "${C_YELLOW}Warning: $*${C_RESET}"
+  echo >&2 "Warning: $*"
 }
 
 # Fatal error - print message and exit
@@ -525,7 +514,6 @@ main() {
         ;;
       --cron)
         VERBOSE=no
-        C_RED='' C_GREEN='' C_YELLOW='' C_BLUE='' C_BOLD='' C_RESET=''
         shift
         ;;
       --help|-h)
@@ -643,7 +631,7 @@ main() {
   ipv4_clean=$(make_temp)
   ipv6_clean=$(make_temp)
 
-  log_info "Downloading blacklists..."
+  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -n "Downloading blacklists..." || true
 
   # Download and extract all IPs
   download_all_blacklists "$ipv4_raw" "$ipv6_raw"
@@ -788,7 +776,7 @@ main() {
 
   if [[ "${VERBOSE:-yes}" == "yes" ]]; then
     log_success "Blacklist update complete"
-    echo -e "  IPv4: ${C_BOLD}$v4_count${C_RESET}  IPv6: ${C_BOLD}$v6_count${C_RESET}  Total: ${C_BOLD}$((v4_count + v6_count))${C_RESET}"
+    echo "  IPv4: $v4_count  IPv6: $v6_count  Total: $((v4_count + v6_count))"
 
     if [[ "$DRY_RUN" == "yes" ]]; then
       echo ""
