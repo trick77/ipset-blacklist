@@ -225,15 +225,14 @@ BLACKLISTS=(
     "https://lists.blocklist.de/lists/all.txt"
 
     # Ban an entire country (use country code like 'cn', 'ru', etc.)
-    # "https://raw.githubusercontent.com/ipverse/rir-ip/master/country/ru/ipv4-aggregated.txt"
+    # "https://raw.githubusercontent.com/ipverse/country-ip-blocks/master/country/ru/ipv4-aggregated.txt"
 )
 ```
 
-For more blacklist sources, check [FireHOL's blocklist-ipsets](https://github.com/firehol/blocklist-ipsets).
 
 ## Whitelist (Prevent Self-Blocking)
 
-Sometimes your server's IP may appear in a public blacklist. To prevent blocking yourself:
+Sometimes your server's IP (or a larger prefix containing it) may appear in a public blacklist. To prevent blocking yourself:
 
 ### Manual Whitelist
 
