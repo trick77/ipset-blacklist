@@ -4,7 +4,7 @@
 [![Bash 4.0+](https://img.shields.io/badge/bash-4.0%2B-blue)](https://www.gnu.org/software/bash/)
 [![License](https://img.shields.io/github/license/trick77/nftables-blacklist)](LICENSE)
 
-> **Freshly defrosted from the [GitHub Arctic Code Vault](https://archiveprogram.github.com/arctic-vault/)** and upgraded from iptables to nftables. Yes, the nftables syntax is... an acquired taste. But I finally bow to the netfilter overlords.
+> **Freshly defrosted from the GitHub Arctic Code Vault and upgraded from iptables to nftables. Yes, the nftables syntax is... an acquired taste. But I finally bow to the netfilter overlords.
 >
 > **Early stage** - expect bugs.
 
