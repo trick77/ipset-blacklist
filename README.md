@@ -18,7 +18,7 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 - [Requirements](#requirements)
 - [Quick Start (Debian/Ubuntu)](#quick-start-debianubuntu)
 - [Persistence Across Reboots](#persistence-across-reboots)
-- [Automatic Updates (Cron Job)](#automatic-updates-cron-job)
+- [Automatic Updates (Systemd Timer)](#automatic-updates-systemd-timer)
 - [Check Dropped Packets](#check-dropped-packets)
 - [Configuration Options](#configuration-options)
 - [Customizing Blacklists](#customizing-blacklists)
@@ -132,16 +132,47 @@ include "/etc/nftables-blacklist/blacklist.nft"
 
 Note: The blacklist.nft file must exist before nftables starts, so run the script at least once first.
 
-## Automatic Updates (Cron Job)
+## Automatic Updates (Systemd Timer)
 
-Create `/etc/cron.d/nftables-blacklist`:
+Create `/etc/systemd/system/nftables-blacklist-update.timer`:
 
-```cron
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-MAILTO=root
+```ini
+[Unit]
+Description=Update nftables IP blacklist daily
 
-# Update blacklist daily at 23:33
-33 23 * * * root /usr/local/sbin/update-blacklist.sh --cron /etc/nftables-blacklist/nftables-blacklist.conf
+[Timer]
+OnCalendar=*-*-* 23:33:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
+```
+
+Create `/etc/systemd/system/nftables-blacklist-update.service`:
+
+```ini
+[Unit]
+Description=Update nftables IP blacklist
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/update-blacklist.sh --cron /etc/nftables-blacklist/nftables-blacklist.conf
+```
+
+Enable it:
+
+```bash
+systemctl daemon-reload
+systemctl enable --now nftables-blacklist-update.timer
+```
+
+Check timer status:
+
+```bash
+systemctl list-timers nftables-blacklist-update
 ```
 
 **Tip:** Once or twice daily is enough. Updating too frequently may get you banned by blacklist providers.
