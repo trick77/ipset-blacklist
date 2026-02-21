@@ -52,47 +52,47 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 
 1. **Install helper tools:**
    ```bash
-   apt install curl iprange
+   sudo apt install curl iprange
    ```
 
 2. **Download the script:**
    ```bash
-   curl -fsSL -o /usr/local/sbin/update-blacklist.sh \
+   sudo curl -fsSL -o /usr/local/sbin/update-blacklist.sh \
      https://raw.githubusercontent.com/trick77/nftables-blacklist/master/update-blacklist.sh
-   chmod +x /usr/local/sbin/update-blacklist.sh
+   sudo chmod +x /usr/local/sbin/update-blacklist.sh
    ```
 
 3. **Create configuration directory and download config:**
    ```bash
-   mkdir -p /etc/nftables-blacklist
+   sudo mkdir -p /etc/nftables-blacklist
    [ -f /etc/nftables-blacklist/nftables-blacklist.conf ] \
-     || curl -fsSL -o /etc/nftables-blacklist/nftables-blacklist.conf \
+     || sudo curl -fsSL -o /etc/nftables-blacklist/nftables-blacklist.conf \
           https://raw.githubusercontent.com/trick77/nftables-blacklist/master/nftables-blacklist.conf
    ```
 
 4. **Edit configuration (optional):**
    ```bash
-   nano /etc/nftables-blacklist/nftables-blacklist.conf
+   sudo nano /etc/nftables-blacklist/nftables-blacklist.conf
    ```
 
 5. **Run initial update:**
    ```bash
-   /usr/local/sbin/update-blacklist.sh /etc/nftables-blacklist/nftables-blacklist.conf
+   sudo /usr/local/sbin/update-blacklist.sh /etc/nftables-blacklist/nftables-blacklist.conf
    ```
 
 6. **Verify it's working:**
    ```bash
    # List the blacklist table
-   nft list table inet blacklist
+   sudo nft list table inet blacklist
 
    # Show IPv4 set contents
-   nft list set inet blacklist blacklist4
+   sudo nft list set inet blacklist blacklist4
 
    # Show IPv6 set contents
-   nft list set inet blacklist blacklist6
+   sudo nft list set inet blacklist blacklist6
 
    # Check drop counters
-   nft list chain inet blacklist input
+   sudo nft list chain inet blacklist input
    ```
 
 ## Persistence Across Reboots
