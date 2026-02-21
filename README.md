@@ -31,10 +31,9 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 
 ## Quick Start (Debian/Ubuntu)
 
-1. **Install dependencies:**
+1. **Install helper tools:**
    ```bash
-   apt update
-   apt install nftables curl iprange
+   apt install curl iprange
    ```
 
 2. **Download the script:**
