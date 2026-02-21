@@ -35,6 +35,11 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
    ```bash
    apt update
    apt install nftables curl iprange
+   ```
+
+   If you're not already running a firewall manager that uses nftables (most modern ones do), also enable the nftables service:
+
+   ```bash
    systemctl enable nftables
    systemctl start nftables
    ```
@@ -87,8 +92,7 @@ Create `/etc/systemd/system/nftables-blacklist.service`:
 ```ini
 [Unit]
 Description=nftables IP blacklist
-After=network.target nftables.service
-Requires=nftables.service
+After=network.target
 
 [Service]
 Type=oneshot
@@ -240,7 +244,9 @@ nft get element inet blacklist blacklist6 { 2001:db8::1 }
 
 ### Integration with existing firewall
 
-The blacklist runs in its own nftables table (`inet blacklist`) and won't conflict with your existing rules. The default priority (-200) means packets hit the blacklist check before most other firewall rules.
+This script creates its own nftables table (`inet blacklist`) and loads rules directly with `nft -f`. It doesn't depend on any firewall service or manager.
+
+It won't conflict with your existing firewall — whether you manage rules directly, through a firewall manager, or via `iptables` (which translates to nftables on modern systems). The default priority (-200) means packets hit the blacklist check before most other firewall rules.
 
 If you need the blacklist checked at a different point, adjust `NFT_CHAIN_PRIORITY` in the config. Lower numbers = checked earlier.
 
