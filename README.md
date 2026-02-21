@@ -206,7 +206,7 @@ Edit `nftables-blacklist.conf`. Key settings:
 | `ENABLE_IPV6` | yes | Block IPv6 addresses |
 | `FORCE` | yes | Automatically create the nftables table/sets if they don't exist |
 | `VERBOSE` | yes | Show progress output (use `--cron` flag to suppress) |
-| `AUTO_WHITELIST` | no | Auto-detect and whitelist your server's own IPs (recommended) |
+| `AUTO_WHITELIST` | no | Auto-detect and whitelist your server's own IPs (setting this to `yes` is recommended) |
 | `NFT_CHAIN_PRIORITY` | -200 | When to check the blacklist (-200 = very early, before most other rules) |
 | `CURL_CONNECT_TIMEOUT` | 10 | Seconds to wait for blacklist server connection |
 | `CURL_MAX_TIME` | 30 | Maximum seconds per blacklist download |
