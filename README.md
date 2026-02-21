@@ -65,9 +65,12 @@ A Bash script that uses nftables to block large numbers of malicious IP addresse
 3. **Create configuration directory and download config:**
    ```bash
    sudo mkdir -p /etc/nftables-blacklist
-   [ -f /etc/nftables-blacklist/nftables-blacklist.conf ] \
-     || sudo curl -fsSL -o /etc/nftables-blacklist/nftables-blacklist.conf \
+   if [ -f /etc/nftables-blacklist/nftables-blacklist.conf ]; then
+     echo "Config already exists, skipping download"
+   else
+     sudo curl -fsSL -o /etc/nftables-blacklist/nftables-blacklist.conf \
           https://raw.githubusercontent.com/trick77/nftables-blacklist/master/nftables-blacklist.conf
+   fi
    ```
 
 4. **Edit configuration (optional):**
