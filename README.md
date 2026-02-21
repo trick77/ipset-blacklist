@@ -94,8 +94,6 @@ A Bash script that downloads public IP blacklists and blocks them via nftables. 
 
 ## Persistence Across Reboots
 
-### Option 1: Systemd Service (Recommended)
-
 Create `/etc/systemd/system/nftables-blacklist.service`:
 
 ```ini
@@ -118,16 +116,6 @@ Enable it:
 systemctl daemon-reload
 systemctl enable nftables-blacklist.service
 ```
-
-### Option 2: Include in nftables.conf
-
-If you prefer to load the blacklist as part of your main nftables config, add this to `/etc/nftables.conf`:
-
-```nft
-include "/etc/nftables-blacklist/blacklist.nft"
-```
-
-Note: The blacklist.nft file must exist before nftables starts, so run the script at least once first.
 
 ## Automatic Updates (Systemd Timer)
 
