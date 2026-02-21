@@ -122,7 +122,7 @@ Examples:
 Configuration:
   See nftables-blacklist.conf for all available options.
 
-For more information: https://github.com/trick77/ipset-blacklist
+For more information: https://github.com/trick77/nftables-blacklist
 EOF
 }
 
