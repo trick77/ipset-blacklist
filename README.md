@@ -334,8 +334,7 @@ wc -l /etc/nftables-blacklist/ip-blacklist.list.v6
 
 ## Migrating from the old ipset/iptables version
 
-1. Set up and test the new nftables version (see Quick Start)
-2. Once working, remove the old ipset/iptables rules and clean up legacy files. The exact paths may vary depending on how you originally set it up — the commands below are examples based on the default configuration:
+1. Remove the old ipset/iptables rules and clean up legacy files. The exact paths may vary depending on how you originally set it up — the commands below are examples based on the default configuration:
    ```bash
    # Remove iptables rule and ipset
    iptables -D INPUT -m set --match-set blacklist src -j DROP
@@ -353,6 +352,7 @@ wc -l /etc/nftables-blacklist/ip-blacklist.list.v6
    # Back up anything you need, then remove the old config and data directory
    rm -rI /etc/ipset-blacklist
    ```
+2. Set up the new nftables version (see Quick Start)
 
 > **Stale rule?** If the `iptables -D ... --match-set` command fails with *"Set blacklist doesn't exist"*, the ipset is already gone but a stale rule remains. Delete it by rule number instead:
 > ```bash
