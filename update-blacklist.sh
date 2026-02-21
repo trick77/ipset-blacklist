@@ -655,7 +655,7 @@ main() {
         if iprange --optimize "$ipv4_clean" > "$ipv4_optimized" 2>/dev/null && [[ -s "$ipv4_optimized" ]]; then
           mv "$ipv4_optimized" "$ipv4_clean"
           after_count=$(wc -l < "$ipv4_clean" | tr -d ' ')
-          log_verbose "  CIDR optimization: $before_count -> $after_count entries"
+          log_verbose "  CIDR optimization: $before_count → $after_count entries"
         fi
       fi
     fi
@@ -725,7 +725,7 @@ main() {
       if apply_whitelist "$ipv4_clean" "$whitelist_v4" "$ipv4_filtered" "4"; then
         mv "$ipv4_filtered" "$ipv4_clean"
         after_wl=$(wc -l < "$ipv4_clean" | tr -d ' ')
-        log_verbose "  Whitelist applied: $before_wl -> $after_wl entries"
+        log_verbose "  Whitelist applied: $before_wl → $after_wl entries"
       fi
     fi
 
@@ -740,7 +740,7 @@ main() {
       if apply_whitelist "$ipv6_clean" "$whitelist_v6" "$ipv6_filtered" "6"; then
         mv "$ipv6_filtered" "$ipv6_clean"
         after_wl=$(wc -l < "$ipv6_clean" | tr -d ' ')
-        log_verbose "  Whitelist applied: $before_wl -> $after_wl entries"
+        log_verbose "  Whitelist applied: $before_wl → $after_wl entries"
       fi
     fi
   fi
