@@ -316,4 +316,3 @@ sysctl -p /etc/sysctl.d/99-nftables.conf
 > update-alternatives --set ip6tables /usr/sbin/ip6tables-nft
 > ```
 
-The old version is preserved in the `archive/` folder if you need to reference it.
