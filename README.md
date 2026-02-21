@@ -113,8 +113,8 @@ WantedBy=multi-user.target
 Enable it:
 
 ```bash
-systemctl daemon-reload
-systemctl enable nftables-blacklist.service
+sudo systemctl daemon-reload
+sudo systemctl enable nftables-blacklist.service
 ```
 
 ## Automatic Updates (Systemd Timer)
@@ -150,8 +150,8 @@ ExecStart=/usr/local/sbin/update-blacklist.sh --cron /etc/nftables-blacklist/nft
 Enable it:
 
 ```bash
-systemctl daemon-reload
-systemctl enable --now nftables-blacklist-update.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now nftables-blacklist-update.timer
 ```
 
 Check timer status:
@@ -165,7 +165,7 @@ systemctl list-timers nftables-blacklist-update
 ## Check Dropped Packets
 
 ```bash
-nft list chain inet blacklist input
+sudo nft list chain inet blacklist input
 ```
 
 Example output:
@@ -261,8 +261,8 @@ The script creates the nftables table/sets automatically when `FORCE=yes` (the d
 ### Check if an IP is blocked
 
 ```bash
-nft get element inet blacklist blacklist4 { 1.2.3.4 }
-nft get element inet blacklist blacklist6 { 2001:db8::1 }
+sudo nft get element inet blacklist blacklist4 { 1.2.3.4 }
+sudo nft get element inet blacklist blacklist6 { 2001:db8::1 }
 ```
 
 ### Integration with existing firewall
