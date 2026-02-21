@@ -284,11 +284,30 @@ wc -l /etc/nftables-blacklist/ip-blacklist.list.v6
 ## Migrating from the old ipset/iptables version
 
 1. Set up and test the new nftables version (see Quick Start)
-2. Once working, remove the old iptables rules:
+2. Once working, remove the old ipset/iptables rules and clean up legacy files. The exact paths may vary depending on how you originally set it up — the commands below are examples based on the default configuration:
    ```bash
+   # Remove iptables rule and ipset
    iptables -D INPUT -m set --match-set blacklist src -j DROP
    ipset destroy blacklist
+
+   # Remove old cron job
+   rm -f /etc/cron.d/update-blacklist
+
+   # Remove old script
+   rm -f /usr/local/sbin/update-blacklist.sh
+
+   # Before deleting, check for any custom blacklists or URLs you want to preserve:
+   # - Custom blacklist file: /etc/ipset-blacklist/ip-blacklist-custom.list
+   # - Custom blacklist URLs in: /etc/ipset-blacklist/ipset-blacklist.conf (BLACKLISTS array)
+   # Back up anything you need, then remove the old config and data directory
+   rm -rI /etc/ipset-blacklist
    ```
+
+> **Note for Debian Trixie (and newer) users:** On modern Debian, `iptables` is usually just a compatibility layer (`iptables-nft`) that translates commands to nftables under the hood. If you previously switched to the legacy iptables backend (`iptables-legacy` / `update-alternatives --set iptables /usr/sbin/iptables-legacy`), you'll need to switch back to the nftables backend for this script to work:
+> ```bash
+> update-alternatives --set iptables /usr/sbin/iptables-nft
+> update-alternatives --set ip6tables /usr/sbin/ip6tables-nft
+> ```
 
 The old version is preserved in the `archive/` folder if you need to reference it.
 
