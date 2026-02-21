@@ -35,6 +35,7 @@ A Bash script that downloads public IP blacklists and blocks them via nftables. 
 - Overlapping ranges are merged automatically (e.g., two /24s become one /23)
 - Atomic updates — the blacklist is swapped in one transaction
 - Handles 100k+ blocked IPs without breaking a sweat
+- Auto-whitelist detects your server's IPs to prevent self-blocking
 
 ## Requirements
 
