@@ -165,3 +165,49 @@ teardown() {
 
   [ -f "${TEST_OUTPUT_DIR}/ip-blacklist.list.v6" ]
 }
+
+@test "dry-run: whitelist removes specified IPv6 from output" {
+  local whitelist_config="${BATS_TMPDIR}/whitelist-config.conf"
+  cat > "${whitelist_config}" << EOF
+BLACKLISTS=(
+  "file://${FIXTURES_DIR}/ipv4-public.txt"
+  "file://${FIXTURES_DIR}/ipv6-public.txt"
+)
+
+NFT_BLACKLIST_SCRIPT="${TEST_OUTPUT_DIR}/blacklist.nft"
+IP_BLACKLIST="${TEST_OUTPUT_DIR}/ip-blacklist.list"
+
+NFT_TABLE_NAME="test_blacklist"
+NFT_SET_NAME_V4="test_blacklist4"
+NFT_SET_NAME_V6="test_blacklist6"
+NFT_CHAIN_NAME="test_input"
+NFT_CHAIN_PRIORITY=-200
+
+ENABLE_IPV4=yes
+ENABLE_IPV6=yes
+
+WHITELIST=("2606:4700:4700::1111")
+AUTO_WHITELIST=no
+
+CHUNK_SIZE=100
+EOF
+
+  "${SCRIPT_PATH}" --dry-run "${whitelist_config}"
+
+  # The whitelisted IPv6 should not appear in the v6 list
+  run grep -q "2606:4700:4700::1111" "${TEST_OUTPUT_DIR}/ip-blacklist.list.v6"
+  [ "$status" -ne 0 ]
+
+  # Other IPv6 addresses should still be present
+  grep -q "2001:4860:4860::8888" "${TEST_OUTPUT_DIR}/ip-blacklist.list.v6"
+}
+
+@test "dry-run: --cron suppresses verbose output" {
+  run "${SCRIPT_PATH}" --dry-run --cron "${TEST_CONFIG}"
+
+  [ "$status" -eq 0 ]
+  # --cron sets VERBOSE=no, suppressing progress and processing messages
+  [[ "$output" != *"Downloading blacklists..."* ]]
+  [[ "$output" != *"Processing IPv4"* ]]
+  [[ "$output" != *"Processing IPv6"* ]]
+}
