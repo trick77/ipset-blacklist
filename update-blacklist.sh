@@ -554,6 +554,15 @@ main() {
     die "Cannot load configuration file: $CONFIG_FILE"
   fi
 
+  # Warn if Docker/Podman detected but BLOCK_FORWARD not explicitly configured.
+  # Only triggers when BLOCK_FORWARD is unset/empty — NOT when explicitly set to "no".
+  if [[ -z "${BLOCK_FORWARD:-}" ]]; then
+    if exists docker || exists podman; then
+      log_warn "Docker/Podman detected but BLOCK_FORWARD is not set in configuration."
+      log_warn "Containers are NOT protected by the blacklist. Set BLOCK_FORWARD=yes to enable."
+    fi
+  fi
+
   # Apply defaults for optional settings
   : "${NFT_TABLE_NAME:=blacklist}"
   : "${NFT_SET_NAME_V4:=blacklist4}"
