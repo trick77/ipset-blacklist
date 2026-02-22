@@ -554,12 +554,12 @@ main() {
     die "Cannot load configuration file: $CONFIG_FILE"
   fi
 
-  # Warn if Docker/Podman detected but BLOCK_FORWARD not explicitly configured.
+  # Warn if forward chains exist but BLOCK_FORWARD not explicitly configured.
   # Only triggers when BLOCK_FORWARD is unset/empty — NOT when explicitly set to "no".
   if [[ -z "${BLOCK_FORWARD:-}" ]]; then
-    if exists docker || exists podman; then
-      log_warn "Docker/Podman detected but BLOCK_FORWARD is not set in configuration."
-      log_warn "Containers are NOT protected by the blacklist. Set BLOCK_FORWARD=yes to enable, or BLOCK_FORWARD=no to dismiss this warning."
+    if nft list chains 2>/dev/null | grep -q 'hook forward'; then
+      log_warn "Forward chain(s) detected but BLOCK_FORWARD is not set in configuration."
+      log_warn "Forwarded traffic (e.g. to containers) is NOT protected by the blacklist. Set BLOCK_FORWARD=yes to enable, or BLOCK_FORWARD=no to dismiss this warning."
     fi
   fi
 
