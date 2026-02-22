@@ -559,7 +559,7 @@ main() {
   if [[ -z "${BLOCK_FORWARD:-}" ]]; then
     if exists docker || exists podman; then
       log_warn "Docker/Podman detected but BLOCK_FORWARD is not set in configuration."
-      log_warn "Containers are NOT protected by the blacklist. Set BLOCK_FORWARD=yes to enable."
+      log_warn "Containers are NOT protected by the blacklist. Set BLOCK_FORWARD=yes to enable, or BLOCK_FORWARD=no to dismiss this warning."
     fi
   fi
 
