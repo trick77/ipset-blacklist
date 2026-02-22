@@ -633,6 +633,16 @@ main() {
         die "Failed to create nftables structure"
       fi
     fi
+
+    # Ensure forward chain exists when BLOCK_FORWARD is enabled on an existing table
+    if [[ "${BLOCK_FORWARD}" == "yes" ]]; then
+      if ! nft list chain inet "${NFT_TABLE_NAME}" forward >/dev/null 2>&1; then
+        log_verbose "Adding forward chain to existing table '${NFT_TABLE_NAME}'..."
+        nft add chain inet "${NFT_TABLE_NAME}" forward '{ type filter hook forward priority '"${NFT_CHAIN_PRIORITY}"'; policy accept; }'
+        nft add rule inet "${NFT_TABLE_NAME}" forward ip saddr @"${NFT_SET_NAME_V4}" counter drop comment \"IPv4 blacklist\"
+        nft add rule inet "${NFT_TABLE_NAME}" forward ip6 saddr @"${NFT_SET_NAME_V6}" counter drop comment \"IPv6 blacklist\"
+      fi
+    fi
   else
     log_verbose "[DRY-RUN] Skipping nftables table check"
   fi
