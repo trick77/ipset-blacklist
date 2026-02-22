@@ -284,8 +284,8 @@ The script creates the nftables table/sets automatically when `FORCE=yes` (the d
 ### Check if an IP is blocked
 
 ```bash
-sudo nft get element inet blacklist blacklist4 { 1.2.3.4 }
-sudo nft get element inet blacklist blacklist6 { 2001:db8::1 }
+sudo nft get element inet blacklist blacklist4 '{ 1.2.3.4 }'
+sudo nft get element inet blacklist blacklist6 '{ 2001:db8::1 }'
 ```
 
 ### Integration with existing firewall
