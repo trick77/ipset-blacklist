@@ -10,6 +10,26 @@
 
 A Bash script that downloads public IP blacklists and blocks them via nftables. IPv4, IPv6, CIDR.
 
+```
+Downloading blacklists..............................................
+Downloaded 43 of 43 blacklists
+Processing IPv4 addresses...
+  CIDR optimization: 104791 → 66178 entries
+Processing IPv6 addresses...
+Auto-detecting server IPs for whitelist...
+  Whitelisted: 2001:db8:305:2100::1
+  Whitelisted: 203.0.113.10
+Applying IPv4 whitelist...
+  Whitelist applied: 66178 → 66178 entries
+Applying IPv6 whitelist...
+  Note: IPv6 whitelist uses exact matching only
+  Whitelist applied: 23927 → 23927 entries
+Generating nftables script...
+Applying nftables rules...
+Blacklist update complete
+  IPv4: 66178  IPv6: 23927  Total: 90105
+```
+
 > Looking for the old ipset/iptables version? See the [archive/](archive/) folder.
 
 ## Table of Contents
