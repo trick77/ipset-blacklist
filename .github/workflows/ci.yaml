@@ -9,11 +9,12 @@ jobs:
   shellcheck:
     name: ShellCheck
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
       - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
+        uses: ludeeus/action-shellcheck@2.0.0
         with:
           scandir: '.'
           severity: warning
@@ -21,6 +22,7 @@ jobs:
   syntax:
     name: Bash Syntax
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
@@ -29,34 +31,35 @@ jobs:
 
   unit-tests:
     name: Unit Tests
+    needs: [shellcheck, syntax]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install BATS
-        run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          sudo /tmp/bats-core/install.sh /usr/local
-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y iprange
+      - name: Setup BATS and iprange
+        uses: ./.github/actions/setup-bats
 
       - name: Run unit tests
         run: bats test/unit/*.bats
 
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-artifacts
+          path: /tmp/bats-*
+
   integration-tests:
     name: Integration Tests
+    needs: [shellcheck, syntax]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install BATS
-        run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
-          sudo /tmp/bats-core/install.sh /usr/local
-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y iprange
+      - name: Setup BATS and iprange
+        uses: ./.github/actions/setup-bats
 
       - name: Create config directory
         run: sudo mkdir -p /etc/nftables-blacklist && sudo chmod 777 /etc/nftables-blacklist
@@ -64,9 +67,18 @@ jobs:
       - name: Run integration tests
         run: bats test/integration/*.bats
 
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-artifacts
+          path: /tmp/bats-*
+
   dry-run:
     name: Dry Run Test
+    needs: [shellcheck, syntax]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
@@ -78,3 +90,10 @@ jobs:
 
       - name: Run dry-run test
         run: ./update-blacklist.sh --dry-run test/nftables-blacklist.conf
+
+      - name: Upload dry-run artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-artifacts
+          path: /etc/nftables-blacklist/

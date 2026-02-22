@@ -1,0 +1,25 @@
+name: Setup BATS and iprange
+description: Install BATS (cached) and iprange for testing
+
+runs:
+  using: composite
+  steps:
+    - name: Cache BATS
+      id: cache-bats
+      uses: actions/cache@v4
+      with:
+        path: |
+          /usr/local/bin/bats
+          /usr/local/libexec/bats-core
+        key: bats-core-1.11
+
+    - name: Install BATS
+      if: steps.cache-bats.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
+        sudo /tmp/bats-core/install.sh /usr/local
+
+    - name: Install iprange
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y iprange
