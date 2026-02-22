@@ -314,6 +314,18 @@ create_nft_structure() {
   local nft_script
   nft_script=$(make_temp)
 
+  # Build optional forward chain block
+  local forward_chain=""
+  if [[ "${BLOCK_FORWARD}" == "yes" ]]; then
+    forward_chain="
+
+  chain forward {
+    type filter hook forward priority ${NFT_CHAIN_PRIORITY}; policy accept;
+    ip saddr @${NFT_SET_NAME_V4} counter drop comment \"IPv4 blacklist\"
+    ip6 saddr @${NFT_SET_NAME_V6} counter drop comment \"IPv6 blacklist\"
+  }"
+  fi
+
   cat > "$nft_script" <<EOF
 #!/usr/sbin/nft -f
 
@@ -335,7 +347,7 @@ table inet ${NFT_TABLE_NAME} {
     type filter hook input priority ${NFT_CHAIN_PRIORITY}; policy accept;
     ip saddr @${NFT_SET_NAME_V4} counter drop comment "IPv4 blacklist"
     ip6 saddr @${NFT_SET_NAME_V6} counter drop comment "IPv6 blacklist"
-  }
+  }${forward_chain}
 }
 EOF
 
@@ -550,6 +562,7 @@ main() {
   : "${NFT_CHAIN_PRIORITY:=-200}"
   : "${ENABLE_IPV4:=yes}"
   : "${ENABLE_IPV6:=yes}"
+  : "${BLOCK_FORWARD:=no}"
   : "${CHUNK_SIZE:=5000}"
   : "${CURL_CONNECT_TIMEOUT:=10}"
   : "${CURL_MAX_TIME:=30}"
@@ -608,6 +621,11 @@ main() {
         log_error "  nft add chain inet ${NFT_TABLE_NAME} ${NFT_CHAIN_NAME} '{ type filter hook input priority ${NFT_CHAIN_PRIORITY}; policy accept; }'"
         log_error "  nft add rule inet ${NFT_TABLE_NAME} ${NFT_CHAIN_NAME} ip saddr @${NFT_SET_NAME_V4} counter drop"
         log_error "  nft add rule inet ${NFT_TABLE_NAME} ${NFT_CHAIN_NAME} ip6 saddr @${NFT_SET_NAME_V6} counter drop"
+        if [[ "${BLOCK_FORWARD}" == "yes" ]]; then
+          log_error "  nft add chain inet ${NFT_TABLE_NAME} forward '{ type filter hook forward priority ${NFT_CHAIN_PRIORITY}; policy accept; }'"
+          log_error "  nft add rule inet ${NFT_TABLE_NAME} forward ip saddr @${NFT_SET_NAME_V4} counter drop"
+          log_error "  nft add rule inet ${NFT_TABLE_NAME} forward ip6 saddr @${NFT_SET_NAME_V6} counter drop"
+        fi
         exit 1
       fi
 
