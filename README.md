@@ -26,6 +26,7 @@ A Bash script that downloads public IP blacklists and blocks them via nftables. 
 - [Dry Run Mode](#dry-run-mode)
 - [Troubleshooting](#troubleshooting)
 - [Migrating from the old ipset/iptables version](#migrating-from-the-old-ipsetiptables-version)
+- [Uninstall](#uninstall)
 - [Contributing](#contributing)
 
 ## Features
@@ -317,6 +318,47 @@ sysctl -p /etc/sysctl.d/99-nftables.conf
 > update-alternatives --set iptables /usr/sbin/iptables-nft
 > update-alternatives --set ip6tables /usr/sbin/ip6tables-nft
 > ```
+
+## Uninstall
+
+To completely remove nftables-blacklist from your system:
+
+1. **Stop and disable the systemd timer and service:**
+   ```bash
+   sudo systemctl disable --now nftables-blacklist-update.timer
+   sudo systemctl disable --now nftables-blacklist.service
+   ```
+
+2. **Remove the nftables blacklist table** (drops all blacklist rules and sets at once):
+   ```bash
+   sudo nft delete table inet blacklist
+   ```
+
+3. **Remove systemd unit files:**
+   ```bash
+   sudo rm -f /etc/systemd/system/nftables-blacklist.service
+   sudo rm -f /etc/systemd/system/nftables-blacklist-update.service
+   sudo rm -f /etc/systemd/system/nftables-blacklist-update.timer
+   sudo systemctl daemon-reload
+   ```
+
+4. **Remove the script:**
+   ```bash
+   sudo rm -f /usr/local/sbin/update-blacklist.sh
+   ```
+
+5. **Remove configuration and data:**
+   ```bash
+   sudo rm -rI /etc/nftables-blacklist
+   ```
+
+6. **Remove sysctl tweaks** (only if you added the buffer size workaround):
+   ```bash
+   sudo rm -f /etc/sysctl.d/99-nftables.conf
+   sudo sysctl --system
+   ```
+
+After these steps, no traces of the blacklist remain and all previously blocked traffic will flow normally again.
 
 ## Contributing
 
