@@ -212,7 +212,7 @@ Edit `nftables-blacklist.conf`. Key settings:
 | `FORCE` | yes | Automatically create the nftables table/sets if they don't exist |
 | `VERBOSE` | yes | Show progress output (use `--cron` flag to suppress) |
 | `AUTO_WHITELIST` | no | Auto-detect and whitelist your server's own IPs (setting this to `yes` is recommended) |
-| `BLOCK_FORWARD` | no | Also block blacklisted IPs in the forward chain — blacklisted IPs will NOT be blocked for Docker containers unless set to `yes` |
+| `BLOCK_FORWARD` | no | Also block blacklisted IPs in the forward chain — forwarded traffic (e.g. to containers) is NOT blocked unless set to `yes` |
 | `NFT_CHAIN_PRIORITY` | -200 | When to check the blacklist (-200 = very early, before most other rules) |
 | `CURL_CONNECT_TIMEOUT` | 10 | Seconds to wait for blacklist server connection |
 | `CURL_MAX_TIME` | 30 | Maximum seconds per blacklist download |
@@ -293,9 +293,9 @@ sudo nft get element inet blacklist blacklist6 '{ 2001:db8::1 }'
 
 The script uses its own nftables table (`inet blacklist`) and won't conflict with your existing firewall. The default priority (-200) means packets hit the blacklist before most other rules. Adjust `NFT_CHAIN_PRIORITY` if needed.
 
-### Docker / container traffic not blocked
+### Forwarded traffic not blocked
 
-By default, the blacklist only hooks into the `input` chain, which protects the host itself. Traffic forwarded to Docker containers (or other forwarded traffic) bypasses it entirely. To extend protection to containers, set `BLOCK_FORWARD=yes` in your configuration. This adds a `forward` chain that reuses the same IP sets — no data is duplicated.
+By default, the blacklist only hooks into the `input` chain, which protects the host itself. Forwarded traffic (e.g. to Docker containers) bypasses it entirely. The script will warn you if it detects existing forward chains in nftables while `BLOCK_FORWARD` is not configured. To extend protection to forwarded traffic, set `BLOCK_FORWARD=yes` in your configuration. This adds a `forward` chain that reuses the same IP sets — no data is duplicated. Set `BLOCK_FORWARD=no` to dismiss the warning.
 
 ### Large IP sets (100k+ entries)
 
