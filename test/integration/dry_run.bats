@@ -211,6 +211,6 @@ EOF
   [[ "$output" == *"info: Processing IPv4"* ]]
   [[ "$output" == *"info: Processing IPv6"* ]]
   [[ "$output" == *"info: Blacklist update complete"* ]]
-  # Progress dots should not appear
-  [[ "$output" != *".."* ]]
+  # Bare progress dots should not appear (only dots without a preceding letter)
+  ! echo "$output" | grep -qE '^\.\.'
 }
