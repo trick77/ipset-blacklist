@@ -284,7 +284,7 @@ Use `--cron` for automated/scheduled runs (systemd timers, cron jobs):
 update-blacklist.sh --cron /etc/nftables-blacklist/nftables-blacklist.conf
 ```
 
-Adds structured log prefixes (`info:`, `warn:`, `error:`) to all output and suppresses interactive formatting (progress dots, blank lines). This makes the output easier to parse in journalctl or log files.
+Adds structured log prefixes (`info:`, `warn:`, `error:`) to all output and suppresses interactive formatting (progress dots, blank lines). This makes the output easier to filter with tools like logcheck or parse in journalctl and log files.
 
 ## Troubleshooting
 
