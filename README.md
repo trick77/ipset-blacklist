@@ -210,7 +210,7 @@ Edit `nftables-blacklist.conf`. Key settings:
 | `ENABLE_IPV4` | yes | Block IPv4 addresses |
 | `ENABLE_IPV6` | yes | Block IPv6 addresses |
 | `FORCE` | yes | Automatically create the nftables table/sets if they don't exist |
-| `VERBOSE` | yes | Show progress output (use `--cron` flag to suppress) |
+| `VERBOSE` | yes | Show progress output (`--cron` adds structured `info:`/`warn:`/`error:` prefixes instead) |
 | `AUTO_WHITELIST` | no | Auto-detect and whitelist your server's own IPs (setting this to `yes` is recommended) |
 | `BLOCK_FORWARD` | no | Also block blacklisted IPs in the forward chain — forwarded traffic (e.g. to containers) is NOT blocked unless set to `yes` |
 | `NFT_CHAIN_PRIORITY` | -200 | When to check the blacklist (-200 = very early, before most other rules) |
