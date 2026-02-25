@@ -40,6 +40,7 @@ exists() {
 # Print info message
 log_info() {
   if [[ "$CRON_MODE" == "yes" ]]; then
+    [[ -z "$*" ]] && return
     local msg="$*"
     echo "info: ${msg#"${msg%%[! ]*}"}"
   else
