@@ -6,7 +6,7 @@
 #
 # Options:
 #   --dry-run  Download and process IPs, generate script, but don't apply
-#   --cron     Minimal output, no colors (for cron jobs)
+#   --cron     Add structured log prefixes (info:/warn:/error:) for cron jobs
 #   --help     Show this help message
 #
 # Example:
@@ -21,6 +21,7 @@ set -euo pipefail
 #=============================================================================
 
 DRY_RUN=no
+CRON_MODE=no
 CONFIG_FILE=""
 
 
@@ -36,29 +37,31 @@ exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
-# Print message if VERBOSE=yes
-log_verbose() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$@" || true
-}
-
-# Print success message
-log_success() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$*" || true
-}
-
 # Print info message
 log_info() {
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$*" || true
+  if [[ "$CRON_MODE" == "yes" ]]; then
+    echo "info: $*"
+  else
+    [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$*" || true
+  fi
 }
 
 # Print error to stderr
 log_error() {
-  echo >&2 "Error: $*"
+  if [[ "$CRON_MODE" == "yes" ]]; then
+    echo >&2 "error: $*"
+  else
+    echo >&2 "Error: $*"
+  fi
 }
 
 # Print warning to stderr
 log_warn() {
-  echo >&2 "Warning: $*"
+  if [[ "$CRON_MODE" == "yes" ]]; then
+    echo >&2 "warn: $*"
+  else
+    echo >&2 "Warning: $*"
+  fi
 }
 
 # Fatal error - print message and exit
@@ -67,8 +70,9 @@ die() {
   exit 1
 }
 
-# Show progress dot
+# Show progress dot (suppressed in cron mode)
 show_progress() {
+  [[ "$CRON_MODE" == "yes" ]] && return 0
   [[ "${VERBOSE:-yes}" == "yes" ]] && echo -n "." || true
 }
 
@@ -98,7 +102,7 @@ Usage: update-blacklist.sh [OPTIONS] <configuration file>
 Options:
   --dry-run  Download and process IPs, generate nftables script,
              but don't actually apply rules. Useful for testing.
-  --cron     Minimal output, no colors. Use this for cron jobs.
+  --cron     Add structured log prefixes (info:/warn:/error:) for cron jobs.
   --help     Show this help message
 
 Examples:
@@ -294,7 +298,7 @@ apply_whitelist() {
     # IPv6: exact match filtering only (iprange doesn't support IPv6)
     # This means 2001:db8::1 in whitelist won't filter 2001:db8::/32 in blacklist
     grep -v -F -x -f "$whitelist_file" "$blacklist_file" > "$output_file" 2>/dev/null || cp "$blacklist_file" "$output_file"
-    log_verbose "  Note: IPv6 whitelist uses exact matching only"
+    log_info "  Note: IPv6 whitelist uses exact matching only"
   fi
 
   return 0
@@ -351,10 +355,10 @@ table inet ${NFT_TABLE_NAME} {
 }
 EOF
 
-  log_verbose "Creating nftables table '${NFT_TABLE_NAME}'..."
+  log_info "Creating nftables table '${NFT_TABLE_NAME}'..."
 
   if [[ "$DRY_RUN" == "yes" ]]; then
-    log_verbose "[DRY-RUN] Would execute: nft -f $nft_script"
+    log_info "[DRY-RUN] Would execute: nft -f $nft_script"
     cat "$nft_script"
     return 0
   fi
@@ -408,8 +412,8 @@ apply_nft_script() {
   local script_file="$1"
 
   if [[ "$DRY_RUN" == "yes" ]]; then
-    log_verbose ""
-    log_verbose "[DRY-RUN] Would apply: nft -f $script_file"
+    log_info ""
+    log_info "[DRY-RUN] Would apply: nft -f $script_file"
     return 0
   fi
 
@@ -497,13 +501,13 @@ download_all_blacklists() {
     fi
   done
 
-  log_verbose ""
+  log_info ""
 
   if (( success_count == 0 )); then
     die "All blacklist downloads failed ($total_count URLs)"
   fi
 
-  log_verbose "Downloaded $success_count of $total_count blacklists"
+  log_info "Downloaded $success_count of $total_count blacklists"
 }
 
 #=============================================================================
@@ -519,7 +523,7 @@ main() {
         shift
         ;;
       --cron)
-        VERBOSE=no
+        CRON_MODE=yes
         shift
         ;;
       --help|-h)
@@ -646,14 +650,14 @@ main() {
     # Ensure forward chain exists when BLOCK_FORWARD is enabled on an existing table
     if [[ "${BLOCK_FORWARD}" == "yes" ]]; then
       if ! nft list chain inet "${NFT_TABLE_NAME}" forward >/dev/null 2>&1; then
-        log_verbose "Adding forward chain to existing table '${NFT_TABLE_NAME}'..."
+        log_info "Adding forward chain to existing table '${NFT_TABLE_NAME}'..."
         nft add chain inet "${NFT_TABLE_NAME}" forward '{ type filter hook forward priority '"${NFT_CHAIN_PRIORITY}"'; policy accept; }'
         nft add rule inet "${NFT_TABLE_NAME}" forward ip saddr @"${NFT_SET_NAME_V4}" counter drop comment \"IPv4 blacklist\"
         nft add rule inet "${NFT_TABLE_NAME}" forward ip6 saddr @"${NFT_SET_NAME_V6}" counter drop comment \"IPv6 blacklist\"
       fi
     fi
   else
-    log_verbose "[DRY-RUN] Skipping nftables table check"
+    log_info "[DRY-RUN] Skipping nftables table check"
   fi
 
   # Create temporary files for IP collection
@@ -663,14 +667,18 @@ main() {
   ipv4_clean=$(make_temp)
   ipv6_clean=$(make_temp)
 
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -n "Downloading blacklists..." || true
+  if [[ "$CRON_MODE" == "yes" ]]; then
+    log_info "Downloading blacklists..."
+  elif [[ "${VERBOSE:-yes}" == "yes" ]]; then
+    echo -n "Downloading blacklists..."
+  fi
 
   # Download and extract all IPs
   download_all_blacklists "$ipv4_raw" "$ipv6_raw"
 
   # Process IPv4
   if [[ "${ENABLE_IPV4:-yes}" == "yes" ]]; then
-    log_verbose "Processing IPv4 addresses..."
+    log_info "Processing IPv4 addresses..."
 
     if [[ -s "$ipv4_raw" ]]; then
       # Filter private ranges and deduplicate
@@ -687,7 +695,7 @@ main() {
         if iprange --optimize "$ipv4_clean" > "$ipv4_optimized" 2>/dev/null && [[ -s "$ipv4_optimized" ]]; then
           mv "$ipv4_optimized" "$ipv4_clean"
           after_count=$(wc -l < "$ipv4_clean")
-          log_verbose "  CIDR optimization: $before_count → $after_count entries"
+          log_info "  CIDR optimization: $before_count → $after_count entries"
         fi
       fi
     fi
@@ -695,7 +703,7 @@ main() {
 
   # Process IPv6
   if [[ "${ENABLE_IPV6:-yes}" == "yes" ]]; then
-    log_verbose "Processing IPv6 addresses..."
+    log_info "Processing IPv6 addresses..."
 
     if [[ -s "$ipv6_raw" ]]; then
       # Filter private ranges and deduplicate
@@ -725,7 +733,7 @@ main() {
 
   # Auto-detect server IPs if enabled
   if [[ "${AUTO_WHITELIST:-no}" == "yes" ]]; then
-    log_verbose "Auto-detecting server IPs for whitelist..."
+    log_info "Auto-detecting server IPs for whitelist..."
     local auto_ips
     auto_ips=$(make_temp)
     get_server_ips | sort -u > "$auto_ips"
@@ -738,7 +746,7 @@ main() {
         else
           echo "$ip" >> "$whitelist_v4"
         fi
-        log_verbose "  Whitelisted: $ip"
+        log_info "  Whitelisted: $ip"
       done < "$auto_ips"
       has_whitelist=yes
     fi
@@ -748,7 +756,7 @@ main() {
   if [[ "$has_whitelist" == "yes" ]]; then
     # Apply IPv4 whitelist
     if [[ -s "$ipv4_clean" ]] && [[ -s "$whitelist_v4" ]]; then
-      log_verbose "Applying IPv4 whitelist..."
+      log_info "Applying IPv4 whitelist..."
       local ipv4_filtered
       ipv4_filtered=$(make_temp)
       local before_wl after_wl
@@ -757,13 +765,13 @@ main() {
       if apply_whitelist "$ipv4_clean" "$whitelist_v4" "$ipv4_filtered" "4"; then
         mv "$ipv4_filtered" "$ipv4_clean"
         after_wl=$(wc -l < "$ipv4_clean")
-        log_verbose "  Whitelist applied: $before_wl → $after_wl entries"
+        log_info "  Whitelist applied: $before_wl → $after_wl entries"
       fi
     fi
 
     # Apply IPv6 whitelist
     if [[ -s "$ipv6_clean" ]] && [[ -s "$whitelist_v6" ]]; then
-      log_verbose "Applying IPv6 whitelist..."
+      log_info "Applying IPv6 whitelist..."
       local ipv6_filtered
       ipv6_filtered=$(make_temp)
       before_wl=$(wc -l < "$ipv6_clean")
@@ -771,7 +779,7 @@ main() {
       if apply_whitelist "$ipv6_clean" "$whitelist_v6" "$ipv6_filtered" "6"; then
         mv "$ipv6_filtered" "$ipv6_clean"
         after_wl=$(wc -l < "$ipv6_clean")
-        log_verbose "  Whitelist applied: $before_wl → $after_wl entries"
+        log_info "  Whitelist applied: $before_wl → $after_wl entries"
       fi
     fi
   fi
@@ -788,12 +796,12 @@ main() {
   # Create combined list for backward compatibility
   cat "$ipv4_clean" "$ipv6_clean" 2>/dev/null > "$IP_BLACKLIST" || true
 
-  log_verbose "Generating nftables script..."
+  log_info "Generating nftables script..."
 
   # Generate atomic update script
   generate_nft_script "$ipv4_clean" "$ipv6_clean" "$NFT_BLACKLIST_SCRIPT"
 
-  log_verbose "Applying nftables rules..."
+  log_info "Applying nftables rules..."
 
   # Apply atomically
   if ! apply_nft_script "$NFT_BLACKLIST_SCRIPT"; then
@@ -805,8 +813,15 @@ main() {
   v4_count=$(wc -l < "$ipv4_clean" 2>/dev/null || echo 0)
   v6_count=$(wc -l < "$ipv6_clean" 2>/dev/null || echo 0)
 
-  if [[ "${VERBOSE:-yes}" == "yes" ]]; then
-    log_success "Blacklist update complete"
+  if [[ "$CRON_MODE" == "yes" ]]; then
+    log_info "Blacklist update complete"
+    log_info "IPv4: $v4_count  IPv6: $v6_count  Total: $((v4_count + v6_count))"
+
+    if [[ "$DRY_RUN" == "yes" ]]; then
+      log_info "[DRY-RUN] No changes were applied to nftables"
+    fi
+  elif [[ "${VERBOSE:-yes}" == "yes" ]]; then
+    log_info "Blacklist update complete"
     echo "  IPv4: $v4_count  IPv6: $v6_count  Total: $((v4_count + v6_count))"
 
     if [[ "$DRY_RUN" == "yes" ]]; then

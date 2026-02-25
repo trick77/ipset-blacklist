@@ -202,12 +202,15 @@ EOF
   grep -q "2001:4860:4860::8888" "${TEST_OUTPUT_DIR}/ip-blacklist.list.v6"
 }
 
-@test "dry-run: --cron suppresses verbose output" {
+@test "dry-run: --cron adds structured log prefixes" {
   run "${SCRIPT_PATH}" --dry-run --cron "${TEST_CONFIG}"
 
   [ "$status" -eq 0 ]
-  # --cron sets VERBOSE=no, suppressing progress and processing messages
-  [[ "$output" != *"Downloading blacklists..."* ]]
-  [[ "$output" != *"Processing IPv4"* ]]
-  [[ "$output" != *"Processing IPv6"* ]]
+  # --cron outputs all messages with info:/warn:/error: prefixes
+  [[ "$output" == *"info: Downloading blacklists..."* ]]
+  [[ "$output" == *"info: Processing IPv4"* ]]
+  [[ "$output" == *"info: Processing IPv6"* ]]
+  [[ "$output" == *"info: Blacklist update complete"* ]]
+  # Progress dots should not appear
+  [[ "$output" != *".."* ]]
 }
