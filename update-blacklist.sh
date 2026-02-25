@@ -44,7 +44,7 @@ log_info() {
     local msg="$*"
     echo "info: ${msg#"${msg%%[! ]*}"}"
   else
-    [[ "${VERBOSE:-yes}" == "yes" ]] && echo "$*" || true
+    echo "$*"
   fi
 }
 
@@ -75,7 +75,7 @@ die() {
 # Show progress dot (suppressed in cron mode)
 show_progress() {
   [[ "$CRON_MODE" == "yes" ]] && return 0
-  [[ "${VERBOSE:-yes}" == "yes" ]] && echo -n "." || true
+  echo -n "."
 }
 
 # Create temp file and register for cleanup
@@ -671,7 +671,7 @@ main() {
 
   if [[ "$CRON_MODE" == "yes" ]]; then
     log_info "Downloading blacklists..."
-  elif [[ "${VERBOSE:-yes}" == "yes" ]]; then
+  else
     echo -n "Downloading blacklists..."
   fi
 
@@ -822,7 +822,7 @@ main() {
     if [[ "$DRY_RUN" == "yes" ]]; then
       log_info "[DRY-RUN] No changes were applied to nftables"
     fi
-  elif [[ "${VERBOSE:-yes}" == "yes" ]]; then
+  else
     log_info "Blacklist update complete"
     echo "  IPv4: $v4_count  IPv6: $v6_count  Total: $((v4_count + v6_count))"
 

@@ -8,7 +8,6 @@ load '../helpers/test_helper'
 setup() {
   load_script_functions
   mkdir -p "${BATS_TMPDIR}/work"
-  export VERBOSE=no
 }
 
 teardown() {
