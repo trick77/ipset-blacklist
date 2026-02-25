@@ -44,6 +44,7 @@ Blacklist update complete
 - [Customizing Blacklists](#customizing-blacklists)
 - [Whitelist (Prevent Self-Blocking)](#whitelist-prevent-self-blocking)
 - [Dry Run Mode](#dry-run-mode)
+- [Cron Mode](#cron-mode)
 - [Troubleshooting](#troubleshooting)
 - [Migrating from the old ipset/iptables version](#migrating-from-the-old-ipsetiptables-version)
 - [Uninstall](#uninstall)
@@ -210,7 +211,6 @@ Edit `nftables-blacklist.conf`. Key settings:
 | `ENABLE_IPV4` | yes | Block IPv4 addresses |
 | `ENABLE_IPV6` | yes | Block IPv6 addresses |
 | `FORCE` | yes | Automatically create the nftables table/sets if they don't exist |
-| `VERBOSE` | yes | Show progress output (`--cron` adds structured `info:`/`warn:`/`error:` prefixes instead) |
 | `AUTO_WHITELIST` | no | Auto-detect and whitelist your server's own IPs (setting this to `yes` is recommended) |
 | `BLOCK_FORWARD` | no | Also block blacklisted IPs in the forward chain — forwarded traffic (e.g. to containers) is NOT blocked unless set to `yes` |
 | `NFT_CHAIN_PRIORITY` | -200 | When to check the blacklist (-200 = very early, before most other rules) |
@@ -275,6 +275,16 @@ update-blacklist.sh --dry-run /etc/nftables-blacklist/nftables-blacklist.conf
 ```
 
 Downloads and processes everything but doesn't actually load the rules.
+
+## Cron Mode
+
+Use `--cron` for automated/scheduled runs (systemd timers, cron jobs):
+
+```bash
+update-blacklist.sh --cron /etc/nftables-blacklist/nftables-blacklist.conf
+```
+
+Adds structured log prefixes (`info:`, `warn:`, `error:`) to all output and suppresses interactive formatting (progress dots, blank lines). This makes the output easier to parse in journalctl or log files.
 
 ## Troubleshooting
 
