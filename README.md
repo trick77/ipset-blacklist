@@ -8,7 +8,7 @@
 >
 > **Early stage** - expect bugs.
 
-A Bash script that downloads public IP blacklists and blocks them via nftables. IPv4, IPv6, CIDR.
+A Bash script that automatically downloads public IP blacklists and blocks them using nftables to keep script kiddies, botnets, and other unwanted traffic off your Linux server. Supports IPv4, IPv6, and CIDR aggregation with built-in whitelisting, cron scheduling, and automatic server IP detection.
 
 ```
 Downloading blacklists..............................................
